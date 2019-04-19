@@ -26,9 +26,10 @@ function newGcode() {
     	evalGcode(gcode[i]);
     }
     
-
+    update();
 
 }
+
 
 function findVal(ch, lst) {
     for( var i = 0, len = lst.length; i < len; i++) {
@@ -54,7 +55,6 @@ function evalGcode(s) {
 	if(y) curY = y;
 	else console.log("failedY");
 	break;
-
     default:
 	console.log("unknown gcode: " + s);
     }
@@ -96,7 +96,7 @@ function update() {
     drawingCtx.globalAlpha = .7;
 
     drawingCtx.beginPath();
-    drawingCtx.arc(curX, curY, 5, 0, 2 * Math.PI, true);
+    drawingCtx.arc(curX, curY, 2, 0, 2 * Math.PI, true);
     drawingCtx.fillStyle = "#1F1F1F";
     drawingCtx.fill();
     drawingCtx.closePath();
@@ -105,7 +105,20 @@ function update() {
 
     
     updatePlotter(context, curX, curY);
+
+
+    // Line test
+    if (curX != update.prevX ||
+	curY != update.prevY) {
+	drawingCtx.beginPath();
+	drawingCtx.moveTo(update.prevX, update.prevY);
+	drawingCtx.lineTo(curX,curY);
+	drawingCtx.stroke();
+    }
+
     
+    update.prevX = curX;
+    update.prevY = curY;
     // requestAnimationFrame(update);
 }
 
@@ -136,10 +149,7 @@ function updatePlotter(ctx, x, y) {
     ctx.fillText("("+x+", "+y+")", x, y+15);
 
 
-    console.log("UPDATE:" + curX + ", " +curY + "     "+ x + ", " +y);
-    ctx.fillStyle = "#11ff11";
     ctx.fillText(document.getElementById("width").value, x, y+35);
-    ctx.fillStyle = "steelblue";
 
     // Line lengths
     la = Math.sqrt( Math.pow(x,2) + Math.pow(y,2));
@@ -153,7 +163,6 @@ function updatePlotter(ctx, x, y) {
 
     ctx.fillText(+la.toFixed(2), x/2, y/2);
     ctx.fillText(+lb.toFixed(2) , (x+canvas.clientWidth)/2, y/2);
-    console.log("pltr2: ("+ x +", "+ y +")");
 }
 
 
