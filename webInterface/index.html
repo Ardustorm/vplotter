@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <meta charset="utf-8">
+
+    <body>
+	<style>
+	 canvas {
+	     border: #333 1px solid;
+	 }
+	 
+	 body {
+	     padding: 50px;
+	 }
+
+	</style>
+
+	
+	<center><input type="text" id="width" value="Dist Between motors" />
+	    <br></center>
+	    <center> <canvas id="myCanvas" width="450px" height="350px"> </canvas> </center>
+
+	    <center><textarea id="gcode" cols="50" rows="10" onchange="newGcode()">
+Add multiple lines of text here and watch the scrollbars grow...
+	    </textarea></center>
+	    
+
+	    <script src="myscripts.js"></script> 
+    </body>
+</html>

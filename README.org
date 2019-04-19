@@ -1,0 +1,5 @@
+* Intro
+This project is a work in progress, but the goal is to make a hanging vplotter robot that is completely self contained and is controlled by the esp32.
+
+
+Currently, I am working on the web interface while I wait for parts to arrive.
