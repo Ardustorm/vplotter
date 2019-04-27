@@ -1,3 +1,7 @@
+// TODO:
+//  Scaling
+//  Arcs
+//  Ignore parenthesis (and maybe %
 var canvas = document.querySelector("#myCanvas");
 var context = canvas.getContext("2d");
 var curX = canvas.clientWidth/2;
@@ -47,6 +51,8 @@ function evalGcode(s) {
     switch( cmd[0] ) {
     case "G0" :
     case "G1" :
+    case "G00" :
+    case "G01" :
 	// console.log("test: " + cmd);
 	var x = findVal("X", cmd);
 	var y = findVal("Y", cmd);
@@ -54,6 +60,29 @@ function evalGcode(s) {
 	else console.log("failedX");
 	if(y) curY = y;
 	else console.log("failedY");
+	break;
+	
+    case "G02" :
+    case "G03" :
+	var x0 = curX;
+	var y0 = curY;
+	var x = findVal("X", cmd);
+	var y = findVal("Y", cmd);
+	var i = findVal("I", cmd);
+	var j = findVal("J", cmd);
+
+	var theta0 = Math.atan2(y0-j, x0-i);
+	var theta1 = Math.atan2(y-j, x-i);
+	var R = Math.sqrt( Math.pow(y0-j, 2) + Math.pow(x0-i,2));
+	console.log(theta0, theta1, R);
+	for( var t = 0; t < 1; t+=.1) {
+	    curX = i + R * Math.cos(theta0 + t * (theta1-theta0));
+	    curY = j + R * Math.sin(theta0 + t * (theta1-theta0));
+	    console.log("Circle:", t, curX, curY, theta0 + t * theta1 / (2*Math.PI)),  t* theta1/(2*Math.PI);
+	    update();
+	    
+	}
+	
 	break;
     default:
 	console.log("unknown gcode: " + s);
