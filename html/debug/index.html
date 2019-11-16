@@ -181,11 +181,10 @@
 	 /* we start at the last point and move backwards */
 	 ctx.beginPath();
 	 ctx.strokeStyle = data.color;
-	 ctx.moveTo(c.width, c.height - (data.offset + data.hist[data.hist.length-1])*data.scale);
-
+	 ctx.moveTo(c.width, c.height - (parseFloat(data.offset) + parseFloat(data.hist[data.hist.length-1])*data.scale));
 	 var dataGap = data.maxLength - data.hist.length;
 	 for( var i = data.hist.length-1; i >= 0; i--) {
-	     ctx.lineTo( (i + dataGap) * step, c.height - (data.offset + data.hist[i])*data.scale);
+	     ctx.lineTo( (i + dataGap) * step, c.height - (parseFloat(data.offset) + parseFloat(data.hist[i])*data.scale));
 	 }
 	 ctx.stroke();
 
