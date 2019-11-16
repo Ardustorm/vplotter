@@ -10,6 +10,13 @@ static char connectionMemory[sizeof(RtosConnType) * MAX_CONNECTIONS];
 static HttpdFreertosInstance httpdFreertosInstance;
 
 
+void wsDebug( char * str) {
+   cgiWebsockBroadcast(&httpdFreertosInstance.httpdInstance,
+			  "/websocket/ws.cgi", str, strlen(str),
+			  WEBSOCK_FLAG_NONE);
+
+}
+
 
 //Broadcast the uptime in seconds every second over connected websockets
 void websocketBcast(void *arg) {

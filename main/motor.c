@@ -4,7 +4,14 @@
 
 pcnt_isr_handle_t user_isr_handle = NULL; //user's ISR service handle
 
+volatile int32_t motorOverflow = 0;
 
+
+int32_t encoderCount() {
+   int16_t count = 0;
+   pcnt_get_counter_value(PCNT_TEST_UNIT, &count);
+   return (PCNT_H_LIM_VAL * motorOverflow) + count;
+}
 
 /* Decode what PCNT's unit originated an interrupt
  * and pass this information together with the event type
@@ -25,6 +32,13 @@ static void IRAM_ATTR pcnt_example_intr_handler(void *arg)
 	 evt.status = PCNT.status_unit[i].val;
 	 PCNT.int_clr.val = BIT(i);
 	 xQueueSendFromISR(pcnt_evt_queue, &evt, &HPTaskAwoken);
+	 if (evt.status & PCNT_STATUS_L_LIM_M) {
+	    motorOverflow--;
+	 }
+	 if (evt.status & PCNT_STATUS_H_LIM_M) {
+	    motorOverflow++;
+	 }
+
 	 if (HPTaskAwoken == pdTRUE) {
 	    portYIELD_FROM_ISR();
 	 }
@@ -84,6 +98,46 @@ void pcnt_example_init(void)
 
    /* Everything is set up, now go to counting */
    pcnt_counter_resume(PCNT_TEST_UNIT);
+}
+
+
+void encoderEventsTask(void *arg) {
+   int16_t count = 0;
+   int32_t overflow = 0;
+   pcnt_evt_t evt;
+   portBASE_TYPE res;
+
+   while (1) {
+      /* Wait for the event information passed from PCNT's interrupt handler.
+       * Once received, decode the event type and print it on the serial monitor.
+       */
+      res = xQueueReceive(pcnt_evt_queue, &evt, 1000 / portTICK_PERIOD_MS);
+      if (res == pdTRUE) {
+	 pcnt_get_counter_value(PCNT_TEST_UNIT, &count);
+	 printf("Event PCNT unit[%d]; cnt: %d\n", evt.unit, count);
+	 if (evt.status & PCNT_STATUS_THRES1_M) {
+	    printf("THRES1 EVT\n");
+	 }
+	 if (evt.status & PCNT_STATUS_THRES0_M) {
+	    printf("THRES0 EVT\n");
+	 }
+	 if (evt.status & PCNT_STATUS_L_LIM_M) {
+	    printf("L_LIM EVT\n");
+	    overflow--;
+	 }
+	 if (evt.status & PCNT_STATUS_H_LIM_M) {
+	    printf("H_LIM EVT\n");
+	    overflow++;
+	 }
+	 if (evt.status & PCNT_STATUS_ZERO_M) {
+	    printf("ZERO EVT\n");
+	 }
+      } else {
+	 pcnt_get_counter_value(PCNT_TEST_UNIT, &count);
+	 printf("Current counter value :%d\n", (PCNT_H_LIM_VAL * overflow) + count);
+	    
+      }
+   }
 }
 
 /* ############################# MOTOR ############################### */

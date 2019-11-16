@@ -68,4 +68,8 @@ void httpdInit();
 void init_wifi(bool modeAP);
 
 
+/* send a string over websockets */
+void wsDebug( char * str);
+
+
 #endif	/* WIFI_H */

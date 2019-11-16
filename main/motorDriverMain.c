@@ -29,26 +29,23 @@
 #include "motor.h"
 
 
+void testDebug(void *arg);
+
 void app_main()
 {
 
 
    /* ######################### WIFI ################################# */
-   #ifdef CONFIG_ESPHTTPD_USE_ESPFS
+#ifdef CONFIG_ESPHTTPD_USE_ESPFS
       espFsInit((void*)(image_espfs_start));
       printf("\nUsing ESPFS\n");
 #endif // CONFIG_ESPHTTPD_USE_ESPFS
 
       tcpip_adapter_init();
-
       httpdInit();
-
       init_wifi(false); // Supply false for STA mode
-
-      xTaskCreate(websocketBcast, "wsbcast", 3000, NULL, 3, NULL);
-
-
       esp_wifi_connect();
+      /* xTaskCreate(websocketBcast, "wsbcast", 3000, NULL, 3, NULL); */
 
       printf("\nReady: %s\t%s\n", __DATE__, __TIME__);
 
@@ -61,39 +58,22 @@ void app_main()
     /* Motor */
     xTaskCreate(mcpwm_example_brushed_motor_control, "mcpwm_example_brushed_motor_control", 4096, NULL, 5, NULL);
 
-    
-    int16_t count = 0;
-    int32_t overflow = 0;
-    pcnt_evt_t evt;
-    portBASE_TYPE res;
-    while (1) {
-        /* Wait for the event information passed from PCNT's interrupt handler.
-         * Once received, decode the event type and print it on the serial monitor.
-         */
-        res = xQueueReceive(pcnt_evt_queue, &evt, 1000 / portTICK_PERIOD_MS);
-        if (res == pdTRUE) {
-            pcnt_get_counter_value(PCNT_TEST_UNIT, &count);
-            printf("Event PCNT unit[%d]; cnt: %d\n", evt.unit, count);
-            if (evt.status & PCNT_STATUS_THRES1_M) {
-                printf("THRES1 EVT\n");
-            }
-            if (evt.status & PCNT_STATUS_THRES0_M) {
-                printf("THRES0 EVT\n");
-            }
-            if (evt.status & PCNT_STATUS_L_LIM_M) {
-                printf("L_LIM EVT\n");
-		overflow--;
-            }
-            if (evt.status & PCNT_STATUS_H_LIM_M) {
-                printf("H_LIM EVT\n");
-		overflow++;
-            }
-            if (evt.status & PCNT_STATUS_ZERO_M) {
-                printf("ZERO EVT\n");
-            }
-        } else {
-            pcnt_get_counter_value(PCNT_TEST_UNIT, &count);
-            printf("Current counter value :%d\n", (PCNT_H_LIM_VAL * overflow) + count);
-        }
-    }
+    xTaskCreate(testDebug, "test_debug", 4096, NULL, 5, NULL);
+
+    xTaskCreate(encoderEventsTask, "encodeEventsTask", 4096, NULL, 5, NULL);
+
+}
+
+
+void testDebug(void *arg) {
+
+   char debugBuf[64];
+   
+   while(1) {
+      sprintf(debugBuf, "d position %d\n",  encoderCount() );
+      wsDebug(debugBuf);
+
+      vTaskDelay(10/portTICK_RATE_MS);
+   }
+
 }

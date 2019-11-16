@@ -71,4 +71,11 @@ void mcpwm_example_gpio_initialize();
 void mcpwm_example_brushed_motor_control(void *arg);
 
 
+/* Task originally from esp idf pcnt example that reads encoder events */
+void encoderEventsTask(void *arg);
+
+
+/* returns the encoder count */
+int32_t encoderCount();
+
 #endif /* __MOTOR_H__ */
