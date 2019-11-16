@@ -1,0 +1,47 @@
+<html>
+
+<head>
+	<title>Working...</title>
+	<link rel="stylesheet" type="text/css" href="./style.css">
+	<script type="text/javascript" src="../140medley.min.js"></script>
+	<script type="text/javascript">
+
+		var xhr = j();
+
+
+		function getStatus() {
+			xhr.open("GET", "connstatus.cgi");
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState == 4 && xhr.status >= 200 && xhr.status < 300) {
+					var data = JSON.parse(xhr.responseText);
+					if (data.status == "idle" || data.status == "success") {
+						$("#status").innerHTML = "Done! Redirecting...";
+						window.location = "wifi.tpl";
+					} else if (data.status == "fail") {
+						$("#status").innerHTML = "Command failed. <br /><button onclick=\"window.history.back()\">Go Back</button>";
+					} else {
+						$("#status").innerHTML = "Waiting for command completion...";
+						window.setTimeout(getStatus, 1000);
+					}
+				}
+			}
+			xhr.send();
+		}
+
+		window.onload = function (e) {
+			getStatus();
+		};
+	</script>
+</head>
+
+<body>
+	<button onclick="window.history.back()">Back</button>
+	<div id="main">
+		<h2>Working...</h2>
+		<p>Status:<br />
+			<div id="status">...</div>
+		</p>
+	</div>
+</body>
+
+</html>

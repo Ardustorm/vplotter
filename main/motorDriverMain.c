@@ -25,6 +25,8 @@
 #include "soc/mcpwm_struct.h"
 
 
+#include "wifi.h"
+
 /**
  * TEST CODE BRIEF
  *
@@ -221,6 +223,27 @@ static void mcpwm_example_brushed_motor_control(void *arg)
 void app_main()
 {
 
+
+   /* ######################### WIFI ################################# */
+   #ifdef CONFIG_ESPHTTPD_USE_ESPFS
+      espFsInit((void*)(image_espfs_start));
+      printf("\nUsing ESPFS\n");
+#endif // CONFIG_ESPHTTPD_USE_ESPFS
+
+      tcpip_adapter_init();
+
+      httpdInit();
+
+      init_wifi(false); // Supply false for STA mode
+
+      xTaskCreate(websocketBcast, "wsbcast", 3000, NULL, 3, NULL);
+
+
+      esp_wifi_connect();
+
+      printf("\nReady: %s\t%s\n", __DATE__, __TIME__);
+
+   /* ############################################################## */
 
     /* Initialize PCNT event queue and PCNT functions */
     pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8" />
+
+<title>WebSocket Test</title>
+<style>
+ table, td {
+     border: 1px solid black;
+ }
+ 
+</style>
+<script language="javascript" type="text/javascript">
+
+ /* TODO:
+    - make it so you can send arbitrary data and be able to graph it
+    - have a 'terminal' type thing for printing debug
+    - have a 'freeze' button that duplicates data
+    
+    Code ideas:
+    d - Data/Display : prefix for data
+    t/c/l - terminal/text/console/log : text display, similar to serial out
+    s - setting/setup : setup/initialize stuff such as maxlength, canvas #/size etc. (use JSON's?)
+
+
+  */
+ 
+ var wsUri = "ws://"+window.location.host+"/websocket/ws.cgi";
+ var output;
+ var time = [];
+ var maxTimeLength = 80;
+
+ var variables = {};
+
+
+ var defaultData = {
+     name : "",
+     hist : [],
+     maxLength : 50,
+     color : "black",
+     scale : 1,
+     offset : 0
+ };
+ 
+ function init() {
+     output = document.getElementById("output");
+     testWebSocket();
+     configDataSetup();
+ }
+
+ function configDataSetup() {
+     var table = document.getElementById("dataConfig");
+     var row = table.insertRow(0);
+
+     var cell = row.insertCell(-1);
+     cell.innerHTML = "Name";
+
+     for(var item in defaultData) {
+	 if(item == "hist") {continue;}
+	 cell = row.insertCell(-1);
+	 cell.innerHTML = item;
+     }
+ }
+
+ function testWebSocket() {
+     websocket = new WebSocket(wsUri);
+     websocket.onopen = function(evt) { onOpen(evt) };
+     websocket.onclose = function(evt) { onClose(evt) };
+     websocket.onmessage = function(evt) { onMessage(evt) };
+     websocket.onerror = function(evt) { onError(evt) };
+ }
+
+ function onOpen(evt) {
+     writeToScreen("CONNECTED");
+     doSend("WebSocket rocks");
+ }
+
+ function onClose(evt) {
+     writeToScreen("DISCONNECTED");
+ }
+ 
+ function onError(evt)  {
+     writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+ }
+
+ function doSend(message)
+ {
+     writeToScreen("SENT: " + message); 
+     websocket.send(message);
+ }
+ 
+ 
+ function onMessage(evt)
+ {
+     
+     if(evt.data[0] == "d") {/* Data packet */
+	 /* split data into pairs of label/value */
+	 var incomingData = evt.data.substr(2).split(",");
+	 incomingData = incomingData.map(function(e) { return e.trim().split(" "); } );
+
+	 /* go through each label and update as needed */
+	 for ( var d of incomingData ) {
+
+	     /* If it isn't in variables, add it with defaults*/
+	     if( ! (d[0] in variables) ) {
+		 createNewVariable(d[0]);
+	     }
+	     
+	     var cur = variables[d[0]];/* shorthand for current variable */
+	     cur.hist.push(d[1]);
+	     /* at max length, shift out oldest data */
+	     if(cur.hist.length > cur.maxLength) {
+		 cur.hist.shift();
+	     }
+	 }
+     } else {
+	 writeToScreen('<span style="color: blue;">RECEIVED: ' + evt.data+'</span>');
+     }
+	 graph();
+ }
+
+
+ function createNewVariable(name) {
+     var newData = {};
+     for (var i in defaultData) {
+	 if(i != "hist") {
+	     newData[i] = defaultData[i];
+	 } else {
+	     newData[i] = [];  /* work around to pervent shallow copy */
+	 }
+     }
+     newData.name = name;
+     variables[name] = newData;
+
+     /* create interface */
+     var table = document.getElementById("dataConfig");
+     var row = table.insertRow(-1);
+     var cell = row.insertCell(-1);
+     cell.innerHTML = name;
+     
+     for(var item in defaultData) {
+	 if(item == "hist") {continue;}
+	 var cell = row.insertCell(-1);
+	 if(item == "name") {
+	     cell.innerHTML = defaultData[item];
+	 } else {
+	     cell.innerHTML = '<input type="text" value="'+ defaultData[item] +'" oninput="updateVariable(\''+ name +'\', \''+ item +'\', this.value)">';
+	 }
+     }
+
+     
+ }
+
+ function updateVariable(name, item, value) {
+     variables[name][item] = value;
+     if(item == "maxLength") {
+	 variables[name].hist = variables[name].hist.slice(-value);
+     }
+ }
+
+ function graph() {
+     var c = document.getElementById("myCanvas");
+     var ctx = c.getContext("2d");
+     var step;
+
+     ctx.clearRect(0, 0, c.width, c.height);
+
+     var variableIndex = 0;
+     for( variable in variables) {
+	 var data = variables[variable];
+
+	 if(data.hist.length < 2 || /* Not enough data to plot, so skip */
+	    data.maxLength <= 1) {  /* No data to plot */
+	     continue;
+	 }
+	 step = c.width / (data.maxLength-1);
+
+	 ctx.fillStyle = data.color;
+	 ctx.fillText(data.name, 20, 20 + 20*variableIndex++);
+
+
+	 /* we start at the last point and move backwards */
+	 ctx.beginPath();
+	 ctx.strokeStyle = data.color;
+	 ctx.moveTo(c.width, c.height - (data.offset + data.hist[data.hist.length-1])*data.scale);
+
+	 var dataGap = data.maxLength - data.hist.length;
+	 for( var i = data.hist.length-1; i >= 0; i--) {
+	     ctx.lineTo( (i + dataGap) * step, c.height - (data.offset + data.hist[i])*data.scale);
+	 }
+	 ctx.stroke();
+
+     }
+     
+ }
+
+
+
+ function writeToScreen(message)
+ {
+     var pre = document.createElement("p");
+     pre.style.wordWrap = "break-word";
+     pre.innerHTML = message;
+     output.appendChild(pre);
+ }
+
+
+
+ window.addEventListener("load", init, false);
+
+</script>
+
+
+<h2>Debug!</h2>
+<canvas id="myCanvas" width="600" height="300"></canvas>
+<br>
+
+<br>
+<h2>Data Config:</h2>
+<table id="dataConfig"></table>
+
+<br>
+<h2>WebSocket Test</h2>
+
+<div id="output"></div>
