@@ -71,5 +71,7 @@ void init_wifi(bool modeAP);
 /* send a string over websockets */
 void wsDebug( char * str);
 
+/* register variables to allow changing via websockets */
+void wsRegisterVariable( void * ptr, char type, char * name);
 
 #endif	/* WIFI_H */

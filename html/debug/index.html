@@ -17,10 +17,10 @@
     - have a 'freeze' button that duplicates data
     
     Code ideas:
-    d - Data/Display : prefix for data
+    d - Data/Display : prefix for data        [IMPLEMENTED]
     t/c/l - terminal/text/console/log : text display, similar to serial out
     s - setting/setup : setup/initialize stuff such as maxlength, canvas #/size etc. (use JSON's?)
-
+    v - variables/values : used to communicate which variables to adjust
 
   */
  
@@ -202,6 +202,9 @@
      output.appendChild(pre);
  }
 
+ function getVariables() {
+     websocket.send("v");
+ }
 
 
  window.addEventListener("load", init, false);
@@ -219,5 +222,7 @@
 
 <br>
 <h2>WebSocket Test</h2>
+
+<button onclick="getVariables()">Get Variables</button> 
 
 <div id="output"></div>

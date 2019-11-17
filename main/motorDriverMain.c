@@ -55,12 +55,13 @@ void app_main()
     pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
     pcnt_example_init();
 
+
     /* Motor */
     xTaskCreate(mcpwm_example_brushed_motor_control, "mcpwm_example_brushed_motor_control", 4096, NULL, 5, NULL);
 
     xTaskCreate(testDebug, "test_debug", 4096, NULL, 5, NULL);
 
-    xTaskCreate(encoderEventsTask, "encodeEventsTask", 4096, NULL, 5, NULL);
+    /* xTaskCreate(encoderEventsTask, "encodeEventsTask", 4096, NULL, 5, NULL); */
 
 }
 
@@ -68,9 +69,11 @@ void app_main()
 void testDebug(void *arg) {
 
    char debugBuf[64];
+   int32_t motorPosition = 0;
    
+   wsRegisterVariable( &motorPosition, 'l', "motorPosition");
    while(1) {
-      sprintf(debugBuf, "d position %d\n",  encoderCount() );
+      sprintf(debugBuf, "d encoder %d, motorPosition %d \n",  encoderCount(), motorPosition );
       wsDebug(debugBuf);
 
       vTaskDelay(10/portTICK_RATE_MS);

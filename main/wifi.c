@@ -17,6 +17,70 @@ void wsDebug( char * str) {
 
 }
 
+/* 
+   struct:
+   - name
+   - address
+   - type
+
+ */
+/* how long of a string is allowed to identify a variable */
+#define WS_MAX_VAR_NAME (32)
+/* Maximum number of variables that can be registered */
+#define WS_MAX_VAR_NUMBER (16)
+
+
+typedef struct {
+   void * ptr;
+   char type;
+   char name[WS_MAX_VAR_NAME];
+} WsVariableEntry;
+
+
+/* Store variables */
+WsVariableEntry wsStoredVariables[WS_MAX_VAR_NUMBER] = {0};
+
+/* 
+   ptr must be statically allocated (either global of static)
+   type such as:
+      c   : char
+      d/i : int
+      u   : unsigned int
+      l   : long
+      f   : float
+   name: the string to display to user and to use as id.
+ */
+void wsRegisterVariable( void * ptr, char type, char * name) {
+   int i = 0;
+   while(i < WS_MAX_VAR_NUMBER) {
+      if( wsStoredVariables[i].ptr == NULL) {
+	 wsStoredVariables[i].ptr = ptr;
+	 wsStoredVariables[i].type = type;
+	 strncpy(wsStoredVariables[i].name, name, WS_MAX_VAR_NAME);
+	 return;
+      }
+   }
+   printf("\nFAILED TO REGISTER VARIABLE\n\n");
+
+}
+
+/* if recieved a request for registerd variables, reply */
+void wsReplyRegisteredVariables(Websock *ws) {
+   char buf[(WS_MAX_VAR_NAME+3) * WS_MAX_VAR_NUMBER + 10];
+   
+   strcat(buf , "v ");
+
+   int i = 0;
+   while(i < WS_MAX_VAR_NUMBER && wsStoredVariables[i].ptr != NULL) {
+      strncat(buf , wsStoredVariables[i].name, WS_MAX_VAR_NAME);
+      strcat(buf , ", ");
+      i++;
+   }
+   strcat(buf , "\n");
+   cgiWebsocketSend(&httpdFreertosInstance.httpdInstance,
+		    ws, buf, strlen(buf), WEBSOCK_FLAG_NONE);
+}
+
 
 //Broadcast the uptime in seconds every second over connected websockets
 void websocketBcast(void *arg) {
@@ -40,6 +104,11 @@ static void myWebsocketRecv(Websock *ws, char *data, int len, int flags) {
    sprintf(buff, "You sent: ");
    for (i=0; i<len; i++) buff[i+10]=data[i];
    buff[i+10]=0;
+
+   if(data[0] == 'v') {		/* process request for variables */
+      wsReplyRegisteredVariables(ws);
+   }
+   
    cgiWebsocketSend(&httpdFreertosInstance.httpdInstance,
 		    ws, buff, strlen(buff), WEBSOCK_FLAG_NONE);
 }
