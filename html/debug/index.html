@@ -21,6 +21,12 @@
     t/c/l - terminal/text/console/log : text display, similar to serial out
     s - setting/setup : setup/initialize stuff such as maxlength, canvas #/size etc. (use JSON's?)
     v - variables/values : used to communicate which variables to adjust
+    .          if the browser sends an empty packet ('v') then the esp32 
+    .          should respond with registered variables and their current
+    .          value ('v var1 12, var2 7.231, var3 hello world,')
+    .
+
+    All packets must be at least 2 characters (typically the type followed by a space).
 
   */
  
@@ -91,31 +97,46 @@
  
  function onMessage(evt)
  {
+     /* split data into pairs of label/value */
+     var incomingData = evt.data.substr(2);
      
      if(evt.data[0] == "d") {/* Data packet */
-	 /* split data into pairs of label/value */
-	 var incomingData = evt.data.substr(2).split(",");
-	 incomingData = incomingData.map(function(e) { return e.trim().split(" "); } );
-
-	 /* go through each label and update as needed */
-	 for ( var d of incomingData ) {
-
-	     /* If it isn't in variables, add it with defaults*/
-	     if( ! (d[0] in variables) ) {
-		 createNewVariable(d[0]);
-	     }
-	     
-	     var cur = variables[d[0]];/* shorthand for current variable */
-	     cur.hist.push(d[1]);
-	     /* at max length, shift out oldest data */
-	     if(cur.hist.length > cur.maxLength) {
-		 cur.hist.shift();
-	     }
-	 }
+	 processDataPacket(incomingData);
+	 
+     } else if (evt.data[0] == "v") {/* variable packet */
+	 processVariablePacket(incomingData);
+	 
      } else {
 	 writeToScreen('<span style="color: blue;">RECEIVED: ' + evt.data+'</span>');
      }
 	 graph();
+ }
+
+ function processDataPacket (data) {
+     data = data.split(",");
+     data = data.map(function(e) { return e.trim().split(" "); } );
+
+     /* go through each label and update as needed */
+     for ( var d of data ) {
+
+	 /* If it isn't in variables, add it with defaults*/
+	 if( ! (d[0] in variables) ) {
+	     createNewVariable(d[0]);
+	 }
+	 
+	 var cur = variables[d[0]];/* shorthand for current variable */
+	 cur.hist.push(d[1]);
+	 /* at max length, shift out oldest data */
+	 if(cur.hist.length > cur.maxLength) {
+	     cur.hist.shift();
+	 }
+     }
+ }
+
+ function processVariablePacket(data) {
+     
+     console.log("VARIABLE PACKET: ", data);
+     
  }
 
 
@@ -203,7 +224,7 @@
  }
 
  function getVariables() {
-     websocket.send("v");
+     websocket.send("v ");
  }
 
 

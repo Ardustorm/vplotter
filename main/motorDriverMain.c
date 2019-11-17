@@ -69,7 +69,7 @@ void app_main()
 void testDebug(void *arg) {
 
    char debugBuf[64];
-   int32_t motorPosition = 0;
+   int32_t motorPosition = 100;
    
    wsRegisterVariable( &motorPosition, 'l', "motorPosition");
    while(1) {

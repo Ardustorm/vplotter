@@ -66,17 +66,36 @@ void wsRegisterVariable( void * ptr, char type, char * name) {
 
 /* if recieved a request for registerd variables, reply */
 void wsReplyRegisteredVariables(Websock *ws) {
-   char buf[(WS_MAX_VAR_NAME+3) * WS_MAX_VAR_NUMBER + 10];
-   
-   strcat(buf , "v ");
+   char buf[(WS_MAX_VAR_NAME+10) * WS_MAX_VAR_NUMBER + 10];
+   char tempBuf[32];
+   strcpy(buf , "v ");
 
    int i = 0;
    while(i < WS_MAX_VAR_NUMBER && wsStoredVariables[i].ptr != NULL) {
       strncat(buf , wsStoredVariables[i].name, WS_MAX_VAR_NAME);
-      strcat(buf , ", ");
+      /* variable */
+      switch(wsStoredVariables[i].type) {
+	 case 'i':
+	    sprintf(tempBuf," %i, ",*(int *)wsStoredVariables[i].ptr);
+	    strncat(buf, tempBuf, WS_MAX_VAR_NAME);
+	    break;
+	 case 'l':
+	    sprintf(tempBuf," %ld, ",*(long *)wsStoredVariables[i].ptr);
+	    strncat(buf, tempBuf, WS_MAX_VAR_NAME);
+	    break;
+	 case 's':
+	    strcat(buf , " ");
+	    strncat(buf , (char *)wsStoredVariables[i].ptr, WS_MAX_VAR_NAME);
+	    strcat(buf , ", ");
+	    break;
+	 default:
+	    strcat(buf , " NOT IMPLEMENTED, ");
+	    break;
+      }
       i++;
    }
    strcat(buf , "\n");
+   printf("sending: <%s>\n",buf);
    cgiWebsocketSend(&httpdFreertosInstance.httpdInstance,
 		    ws, buf, strlen(buf), WEBSOCK_FLAG_NONE);
 }
