@@ -74,4 +74,11 @@ void wsDebug( char * str);
 /* register variables to allow changing via websockets */
 void wsRegisterVariable( void * ptr, char type, char * name);
 
+
+
+void processVariablePacket(Websock *ws, char * data, int len);
+
+/* if recieved a request for registerd variables, reply */
+void wsReplyRegisteredVariables(Websock *ws);
+
 #endif	/* WIFI_H */

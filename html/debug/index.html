@@ -18,9 +18,10 @@
     
     Code ideas:
     d - Data/Display : prefix for data        [IMPLEMENTED]
+    v - variables/values : used to communicate which variables to adjust       [PARTIAL]
     t/c/l - terminal/text/console/log : text display, similar to serial out
     s - setting/setup : setup/initialize stuff such as maxlength, canvas #/size etc. (use JSON's?)
-    v - variables/values : used to communicate which variables to adjust
+
     .          if the browser sends an empty packet ('v') then the esp32 
     .          should respond with registered variables and their current
     .          value ('v var1 12, var2 7.231, var3 hello world,')
@@ -65,6 +66,8 @@
 	 cell = row.insertCell(-1);
 	 cell.innerHTML = item;
      }
+     cell = row.insertCell(-1);
+     cell.innerHTML = "Set Var";
  }
 
  function testWebSocket() {
@@ -164,9 +167,11 @@
 	 if(item == "name") {
 	     cell.innerHTML = defaultData[item];
 	 } else {
-	     cell.innerHTML = '<input type="text" value="'+ defaultData[item] +'" oninput="updateVariable(\''+ name +'\', \''+ item +'\', this.value)">';
+	     cell.innerHTML = '<input type="text" size="10" value="'+ defaultData[item] +'" oninput="updateVariable(\''+ name +'\', \''+ item +'\', this.value)">';
 	 }
      }
+     var cell = row.insertCell(-1);
+     cell.innerHTML = '<input type="text" size="10" value="'+ 0 +'" onChange="setVariable(\''+ name +'\', this.value)" onfocusout="setVariable(\''+ name +'\', this.value)">';
 
      
  }
@@ -176,6 +181,10 @@
      if(item == "maxLength") {
 	 variables[name].hist = variables[name].hist.slice(-value);
      }
+ }
+
+ function setVariable( name, value) {
+     websocket.send("v " + name + " " + value +",");
  }
 
  function graph() {
@@ -196,7 +205,7 @@
 	 step = c.width / (data.maxLength-1);
 
 	 ctx.fillStyle = data.color;
-	 ctx.fillText(data.name, 20, 20 + 20*variableIndex++);
+	 ctx.fillText(data.name + " " + data.hist[data.hist.length-1], 20, 20 + 20*variableIndex++);
 
 
 	 /* we start at the last point and move backwards */
@@ -223,8 +232,8 @@
      output.appendChild(pre);
  }
 
- function getVariables() {
-     websocket.send("v ");
+ function sendPacketButton() {
+     websocket.send(document.getElementById("packetData").value);
  }
 
 
@@ -244,6 +253,7 @@
 <br>
 <h2>WebSocket Test</h2>
 
-<button onclick="getVariables()">Get Variables</button> 
+<input type="text" name="Packet to Send" id="packetData" value="help">
+<button onclick="sendPacketButton()">Send Packet</button>
 
 <div id="output"></div>

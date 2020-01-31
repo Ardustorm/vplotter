@@ -60,7 +60,55 @@ void wsRegisterVariable( void * ptr, char type, char * name) {
 	 return;
       }
    }
-   printf("\nFAILED TO REGISTER VARIABLE\n\n");
+   printf("\n### FAILED TO REGISTER VARIABLE\n\n");
+
+}
+
+/* given a variable, and a string representing the data, set the variable
+   to the new value */
+void setStoredVariable( WsVariableEntry variable, char * data) {
+   if( variable.type == 'l' ) {
+      *(int32_t*)(variable.ptr) = strtol( data, NULL, 10);
+
+      /* printf("##SETVARIABLE %s to %d\n", variable.name, *(int32_t*)(variable.ptr) ); */
+   } else {
+      printf("### UNSUPPORTED 'setStoredVariable' CALL!\n");
+   }
+}
+
+
+/* If the packet starts with a 'v ' then this function is called.
+   If there is only the v, then we reply with the registered variables
+   using the wsReplyRegisteredVariables function, otherwise we try
+   and evaluate the packet and set the correct variable.
+   Example packet:
+   'v varName 100'
+ */
+void processVariablePacket(Websock *ws, char * data, int len) {
+   char * varName = NULL;
+   char *saveptr = NULL;		/* for strtok */
+   char buf[64];
+
+   strncpy(buf, data, len);
+   buf[len] = '\0';
+   data = buf;
+   
+   if( len <= 2 ) {		/* Empty packet, reply with registered */
+      wsReplyRegisteredVariables(ws);
+
+   } else {
+      data += 2;		/* remove starting 'v ' */
+      len -= 2;
+      varName = strtok_r(data, " ", &saveptr);
+
+      int i = 0;
+      while(i < WS_MAX_VAR_NUMBER && wsStoredVariables[i].ptr != NULL) { /* check all stored variables */
+	 if( strcmp(wsStoredVariables[i].name, varName) == 0 ) {
+	    setStoredVariable( wsStoredVariables[i], strtok_r( NULL, ",", &saveptr ));
+	 }
+	 i++;
+      }
+   }
 
 }
 
@@ -100,6 +148,15 @@ void wsReplyRegisteredVariables(Websock *ws) {
 		    ws, buf, strlen(buf), WEBSOCK_FLAG_NONE);
 }
 
+void setVariables(char * data) {
+   /* parse first space
+      seach registered variables for entry
+      
+    */
+   
+}
+
+
 
 //Broadcast the uptime in seconds every second over connected websockets
 void websocketBcast(void *arg) {
@@ -125,7 +182,7 @@ static void myWebsocketRecv(Websock *ws, char *data, int len, int flags) {
    buff[i+10]=0;
 
    if(data[0] == 'v') {		/* process request for variables */
-      wsReplyRegisteredVariables(ws);
+      processVariablePacket(ws, data, len);
    }
    
    cgiWebsocketSend(&httpdFreertosInstance.httpdInstance,
