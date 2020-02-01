@@ -38,7 +38,7 @@
 #include "esp_event.h"
 #include "tcpip_adapter.h"
 
-
+#include "ota_server.h"
 
 /* The examples use simple WiFi configuration that you can set via
    'make menuconfig'.

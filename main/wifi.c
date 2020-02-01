@@ -6,6 +6,9 @@
 
 char my_hostname[16] = "esphttpd";
 
+
+static void ota_server_task(void * param);  /* OTA */
+
 static char connectionMemory[sizeof(RtosConnType) * MAX_CONNECTIONS];
 static HttpdFreertosInstance httpdFreertosInstance;
 
@@ -287,6 +290,7 @@ static esp_err_t app_event_handler(void *ctx, system_event_t *event)
 	 {
 	    tcpip_adapter_ip_info_t sta_ip_info;
 	    wifi_config_t sta_conf;
+	    /* xEventGroupSetBits(wifi_event_group, CONNECTED_BIT); /\* for OTA *\/ */
 	    printf("~~~~~STA~~~~~" "\n");
 	    if (esp_wifi_get_config(TCPIP_ADAPTER_IF_STA, &sta_conf) == ESP_OK) {
 	       printf("ssid: %s" "\n", sta_conf.sta.ssid);
@@ -298,6 +302,9 @@ static esp_err_t app_event_handler(void *ctx, system_event_t *event)
 	       printf("GW:" IPSTR "\n", IP2STR(&sta_ip_info.gw));
 	    }
 	    printf("~~~~~~~~~~~~~" "\n");
+
+	    xTaskCreate(&ota_server_task, "ota_server_task", 8096, NULL, 5, NULL);
+	    /* ota_server_start(); */
 	 }
 	 break;
       case SYSTEM_EVENT_STA_CONNECTED:
@@ -347,6 +354,14 @@ static esp_err_t app_event_handler(void *ctx, system_event_t *event)
    return ESP_OK;
 }
 
+
+/* wait till we get an IP, then start OTA server */
+static void ota_server_task(void * param)
+{
+    /* xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY); */
+    ota_server_start();
+    vTaskDelete(NULL);
+}
 
 void httpdInit() {
 

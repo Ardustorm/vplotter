@@ -4,3 +4,6 @@
 [submodule "components/espfs"]
 	path = components/espfs
 	url = https://github.com/jkent/esp32-espfs.git
+[submodule "components/esp32-ota-server"]
+	path = components/ota-server
+	url = https://github.com/yanbe/esp32-ota-server.git
