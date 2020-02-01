@@ -43,15 +43,10 @@
 #define PCNT_TEST_UNIT      PCNT_UNIT_0
 #define PCNT_H_LIM_VAL      0x7FFF
 #define PCNT_L_LIM_VAL      0x8000
-#define PCNT_THRESH1_VAL    15000
-#define PCNT_THRESH0_VAL   -15000
-#define PCNT_INPUT_SIG_IO   4  // Pulse Input GPIO
-#define PCNT_INPUT_CTRL_IO  5  // Control GPIO
 
 
 #define GPIO_PWM0A_OUT 15   //Set GPIO 15 as PWM0A
 #define GPIO_PWM0B_OUT 16   //Set GPIO 16 as PWM0B
-
 
 
 xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
@@ -65,8 +60,8 @@ typedef struct {
 } pcnt_evt_t;
 
 
+void encoderInit(pcnt_unit_t pcntUnit, int pinA, int pinB);
 
-void pcnt_example_init(void);
 void mcpwm_example_gpio_initialize();
 void mcpwm_example_brushed_motor_control(void *arg);
 
@@ -75,7 +70,6 @@ void mcpwm_example_brushed_motor_control(void *arg);
 void encoderEventsTask(void *arg);
 
 
-/* returns the encoder count */
-int32_t encoderCount();
-
+/* returns the encoder count for specified encoder*/
+int32_t encoderCount(pcnt_unit_t pcntUnit);
 #endif /* __MOTOR_H__ */

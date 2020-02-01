@@ -3,15 +3,20 @@
 #include "motor.h"
 #include "wifi.h"
 
+
+volatile int32_t motorOverflow[8] = {0}; /* store over/underflow events for encoders */
+
+
 pcnt_isr_handle_t user_isr_handle = NULL; //user's ISR service handle
 
-volatile int32_t motorOverflow = 0;
 
-
-int32_t encoderCount() {
+/* Returns the encoder count for specified pulse counter,
+   incorporating the over/underflow to get a 32 bit num*/
+int32_t encoderCount(pcnt_unit_t pcntUnit) {
    int16_t count = 0;
-   pcnt_get_counter_value(PCNT_TEST_UNIT, &count);
-   return (PCNT_H_LIM_VAL * motorOverflow) + count;
+   pcnt_get_counter_value(pcntUnit, &count);
+
+   return (PCNT_H_LIM_VAL * motorOverflow[pcntUnit]) + count;
 }
 
 /* Decode what PCNT's unit originated an interrupt
@@ -34,10 +39,10 @@ static void IRAM_ATTR pcnt_example_intr_handler(void *arg)
 	 PCNT.int_clr.val = BIT(i);
 	 xQueueSendFromISR(pcnt_evt_queue, &evt, &HPTaskAwoken);
 	 if (evt.status & PCNT_STATUS_L_LIM_M) {
-	    motorOverflow--;
+	    motorOverflow[i]--;
 	 }
 	 if (evt.status & PCNT_STATUS_H_LIM_M) {
-	    motorOverflow++;
+	    motorOverflow[i]++;
 	 }
 
 	 if (HPTaskAwoken == pdTRUE) {
@@ -47,58 +52,49 @@ static void IRAM_ATTR pcnt_example_intr_handler(void *arg)
    }
 }
 
-
-/* Initialize PCNT functions:
- *  - configure and initialize PCNT
- *  - set up the input filter
- *  - set up the counter events to watch
+/* Sets up a pulse counter as an interrupt with given 2 pins
+   
+   TODO: utilize second channel to double encoder resolution
  */
-void pcnt_example_init(void)
-{
+void encoderInit(pcnt_unit_t pcntUnit, int pinA, int pinB) {
    /* Prepare configuration for the PCNT unit */
-   pcnt_config_t pcnt_config = {
-				// Set PCNT input signal and control GPIOs
-				.pulse_gpio_num = PCNT_INPUT_SIG_IO,
-				.ctrl_gpio_num = PCNT_INPUT_CTRL_IO,
-				.channel = PCNT_CHANNEL_0,
-				.unit = PCNT_TEST_UNIT,
-				// What to do on the positive / negative edge of pulse input?
-				.pos_mode = PCNT_COUNT_INC,   // Count up on the positive edge
-				.neg_mode = PCNT_COUNT_DEC,   // Keep the counter value on the negative edge
-				// What to do when control input is low or high?
-				.lctrl_mode = PCNT_MODE_KEEP, // Keep counting direction if low
-				.hctrl_mode = PCNT_MODE_REVERSE,    // reverse the primary counter mode if high
-				// Set the maximum and minimum limit values to watch
-				.counter_h_lim = PCNT_H_LIM_VAL,
-				.counter_l_lim = PCNT_L_LIM_VAL,
+   pcnt_config_t pcnt_config =
+      {
+       // Set PCNT input signal and control GPIOs
+       .pulse_gpio_num = pinA,
+       .ctrl_gpio_num = pinB,
+       .channel = PCNT_CHANNEL_0,
+       .unit = pcntUnit,
+       // What to do on the positive / negative edge of pulse input?
+       .pos_mode = PCNT_COUNT_INC,   // Count up on the positive edge
+       .neg_mode = PCNT_COUNT_DEC,   // Count down on negative edge
+       // What to do when control input is low or high?
+       .lctrl_mode = PCNT_MODE_KEEP, // Keep counting direction if low
+       .hctrl_mode = PCNT_MODE_REVERSE,    // reverse the primary counter mode if high
+       // Set the maximum and minimum limit values to watch
+       .counter_h_lim = PCNT_H_LIM_VAL,
+       .counter_l_lim = PCNT_L_LIM_VAL,
    };
    /* Initialize PCNT unit */
    pcnt_unit_config(&pcnt_config);
 
-   /* Configure and enable the input filter */
-   /* pcnt_set_filter_value(PCNT_TEST_UNIT, 100); */
-   /* pcnt_filter_enable(PCNT_TEST_UNIT); */
+   /* Here is where I would insert ch1 config */
 
-   /* Set threshold 0 and 1 values and enable events to watch */
-   pcnt_set_event_value(PCNT_TEST_UNIT, PCNT_EVT_THRES_1, PCNT_THRESH1_VAL);
-   pcnt_event_enable(PCNT_TEST_UNIT, PCNT_EVT_THRES_1);
-   pcnt_set_event_value(PCNT_TEST_UNIT, PCNT_EVT_THRES_0, PCNT_THRESH0_VAL);
-   pcnt_event_enable(PCNT_TEST_UNIT, PCNT_EVT_THRES_0);
-   /* Enable events on zero, maximum and minimum limit values */
-   pcnt_event_enable(PCNT_TEST_UNIT, PCNT_EVT_ZERO);
-   pcnt_event_enable(PCNT_TEST_UNIT, PCNT_EVT_H_LIM);
-   pcnt_event_enable(PCNT_TEST_UNIT, PCNT_EVT_L_LIM);
+   
+   pcnt_event_enable(pcntUnit, PCNT_EVT_H_LIM);
+   pcnt_event_enable(pcntUnit, PCNT_EVT_L_LIM);
 
    /* Initialize PCNT's counter */
-   pcnt_counter_pause(PCNT_TEST_UNIT);
-   pcnt_counter_clear(PCNT_TEST_UNIT);
+   pcnt_counter_pause(pcntUnit);
+   pcnt_counter_clear(pcntUnit);
 
    /* Register ISR handler and enable interrupts for PCNT unit */
    pcnt_isr_register(pcnt_example_intr_handler, NULL, 0, &user_isr_handle);
-   pcnt_intr_enable(PCNT_TEST_UNIT);
+   pcnt_intr_enable(pcntUnit);
 
    /* Everything is set up, now go to counting */
-   pcnt_counter_resume(PCNT_TEST_UNIT);
+   pcnt_counter_resume(pcntUnit);
+
 }
 
 
@@ -184,8 +180,7 @@ void mcpwm_example_brushed_motor_control(void *arg)
    /* wsRegisterVariable( &motorPosition, 'l', "motorPosition"); */
    wsRegisterVariable( &targetPosition, 'l', "targetPosition");
    wsRegisterVariable( &Kp, 'f', "Kp");
-   /* wsRegisterVariable( &Kd, 'f', "Kd"); */
-   /* wsRegisterVariable( &Ki, 'f', "Ki"); */
+
    //1. mcpwm gpio initialization
    mcpwm_example_gpio_initialize();
 
@@ -199,7 +194,7 @@ void mcpwm_example_brushed_motor_control(void *arg)
    pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);    //Configure PWM0A & PWM0B with above settings
    while (1) {
-      motorPosition = encoderCount();
+      motorPosition = encoderCount(0);
 
       
       error = (motorPosition - targetPosition) * Kp;

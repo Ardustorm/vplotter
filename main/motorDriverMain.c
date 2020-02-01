@@ -53,8 +53,8 @@ void app_main()
 
     /* Initialize PCNT event queue and PCNT functions */
     pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
-    pcnt_example_init();
-
+    /* pcnt_example_init(); */
+    encoderInit(PCNT_UNIT_0, 4, 5);
 
     /* Motor */
     xTaskCreate(mcpwm_example_brushed_motor_control, "mcpwm_example_brushed_motor_control", 4096, NULL, 5, NULL);
@@ -68,10 +68,6 @@ void app_main()
 
 void testDebug(void *arg) {
 
-   char debugBuf[64];
-   int32_t motorPosition = 100;
-   
-   /* wsRegisterVariable( &motorPosition, 'l', "motorPosition"); */
    while(1) {
       /* sprintf(debugBuf, "d encoder %d, motorPosition %d \n",  encoderCount(), motorPosition ); */
       /* wsDebug(debugBuf); */

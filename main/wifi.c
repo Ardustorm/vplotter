@@ -113,9 +113,11 @@ void processVariablePacket(Websock *ws, char * data, int len) {
       while(i < WS_MAX_VAR_NUMBER && wsStoredVariables[i].ptr != NULL) { /* check all stored variables */
 	 if( strcmp(wsStoredVariables[i].name, varName) == 0 ) {
 	    setStoredVariable( wsStoredVariables[i], strtok_r( NULL, ",", &saveptr ));
+	    return;
 	 }
 	 i++;
       }
+      printf("### UNSUPPORTED 'processVariablePacket', cant find: <%s>!\n", varName);
    }
 
 }
