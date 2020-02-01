@@ -1,9 +1,14 @@
 * Intro
 This project is a work in progress, but the goal is to make a hanging vplotter robot that is completely self contained and is controlled by the esp32.
 
+Currently, there is support for controlling a DC motor and reading a quadrature encoder. In addition I have developed a websockets based debug interface that displays variables and allows the user to adjust them from the browser in real time.
 
-Currently, I am working on the web interface while I wait for parts to arrive.
 
+
+* TODO:
+- Finish supporting 2 motors/encoders
+- Design and build physical frame/wheels of the robot.
+- integrate esp portion and webInterface portion
 
 * Notes
   Make sure espfs is on v0.9.0. The most recent versions change how the 'espFsOpen' function is called.
