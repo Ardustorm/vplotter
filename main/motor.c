@@ -1,6 +1,7 @@
 
 
 #include "motor.h"
+#include "wifi.h"
 
 pcnt_isr_handle_t user_isr_handle = NULL; //user's ISR service handle
 
@@ -175,6 +176,16 @@ void setSpeed(int motorNum , float duty_cycle) {
  */
 void mcpwm_example_brushed_motor_control(void *arg)
 {
+   char debugBuf[64];
+   int32_t motorPosition = 0;
+   int32_t targetPosition = 0;
+   int32_t error;
+   float Kp = -0.5;
+   /* wsRegisterVariable( &motorPosition, 'l', "motorPosition"); */
+   wsRegisterVariable( &targetPosition, 'l', "targetPosition");
+   wsRegisterVariable( &Kp, 'f', "Kp");
+   /* wsRegisterVariable( &Kd, 'f', "Kd"); */
+   /* wsRegisterVariable( &Ki, 'f', "Ki"); */
    //1. mcpwm gpio initialization
    mcpwm_example_gpio_initialize();
 
@@ -188,12 +199,18 @@ void mcpwm_example_brushed_motor_control(void *arg)
    pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);    //Configure PWM0A & PWM0B with above settings
    while (1) {
-      setSpeed(0, 50.0);
-      vTaskDelay(3000 / portTICK_RATE_MS);
-      setSpeed(0, -25.0);
-      vTaskDelay(2000 / portTICK_RATE_MS);
-      setSpeed(0, 0);
-      vTaskDelay(1000 / portTICK_RATE_MS);
+      motorPosition = encoderCount();
+
+      
+      error = (motorPosition - targetPosition) * Kp;
+      if(error >  100) error =  100;
+      if(error < -100) error = -100;
+      setSpeed(0, error);
+
+      sprintf(debugBuf, "d motorPosition %d, targetPosition %d, Kp %f \n", motorPosition, targetPosition, Kp );
+      wsDebug(debugBuf);
+
+      vTaskDelay(10 / portTICK_RATE_MS);
    }
 }
 

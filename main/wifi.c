@@ -51,6 +51,11 @@ WsVariableEntry wsStoredVariables[WS_MAX_VAR_NUMBER] = {0};
    name: the string to display to user and to use as id.
  */
 void wsRegisterVariable( void * ptr, char type, char * name) {
+   char debugBuf[64];
+   sprintf(debugBuf, "d %s 0 \n",  name );
+   wsDebug(debugBuf);
+
+   
    int i = 0;
    while(i < WS_MAX_VAR_NUMBER) {
       if( wsStoredVariables[i].ptr == NULL) {
@@ -59,6 +64,7 @@ void wsRegisterVariable( void * ptr, char type, char * name) {
 	 strncpy(wsStoredVariables[i].name, name, WS_MAX_VAR_NAME);
 	 return;
       }
+      i++;
    }
    printf("\n### FAILED TO REGISTER VARIABLE\n\n");
 
@@ -69,8 +75,10 @@ void wsRegisterVariable( void * ptr, char type, char * name) {
 void setStoredVariable( WsVariableEntry variable, char * data) {
    if( variable.type == 'l' ) {
       *(int32_t*)(variable.ptr) = strtol( data, NULL, 10);
-
       /* printf("##SETVARIABLE %s to %d\n", variable.name, *(int32_t*)(variable.ptr) ); */
+   } else if( variable.type == 'f') {
+      *(float*)(variable.ptr) = strtof( data, NULL);
+      /* printf("##SETVARIABLE %s to %f\n", variable.name, *(float*)(variable.ptr) ); */
    } else {
       printf("### UNSUPPORTED 'setStoredVariable' CALL!\n");
    }
@@ -129,6 +137,10 @@ void wsReplyRegisteredVariables(Websock *ws) {
 	    break;
 	 case 'l':
 	    sprintf(tempBuf," %ld, ",*(long *)wsStoredVariables[i].ptr);
+	    strncat(buf, tempBuf, WS_MAX_VAR_NAME);
+	    break;
+	 case 'f':
+	    sprintf(tempBuf," %f, ",*(float *)wsStoredVariables[i].ptr);
 	    strncat(buf, tempBuf, WS_MAX_VAR_NAME);
 	    break;
 	 case 's':

@@ -71,12 +71,12 @@ void testDebug(void *arg) {
    char debugBuf[64];
    int32_t motorPosition = 100;
    
-   wsRegisterVariable( &motorPosition, 'l', "motorPosition");
+   /* wsRegisterVariable( &motorPosition, 'l', "motorPosition"); */
    while(1) {
-      sprintf(debugBuf, "d encoder %d, motorPosition %d \n",  encoderCount(), motorPosition );
-      wsDebug(debugBuf);
+      /* sprintf(debugBuf, "d encoder %d, motorPosition %d \n",  encoderCount(), motorPosition ); */
+      /* wsDebug(debugBuf); */
 
-      vTaskDelay(10/portTICK_RATE_MS);
+      vTaskDelay(100/portTICK_RATE_MS);
    }
 
 }
