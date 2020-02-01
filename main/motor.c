@@ -78,9 +78,20 @@ void encoderInit(pcnt_unit_t pcntUnit, int pinA, int pinB) {
    /* Initialize PCNT unit */
    pcnt_unit_config(&pcnt_config);
 
-   /* Here is where I would insert ch1 config */
 
+   /* Use the second channel, switching the control and pulse pins and
+      the direction to get full quadrature resolution*/
+   pcnt_config.pulse_gpio_num = pinB;
+   pcnt_config.ctrl_gpio_num = pinA;
+   pcnt_config.channel = PCNT_CHANNEL_1;
+   pcnt_config.pos_mode = PCNT_COUNT_DEC;   // Count down on the positive edge
+   pcnt_config.neg_mode = PCNT_COUNT_INC;   // Count UP on negative edge
    
+
+   /* Initialize PCNT unit with second channel configured */
+   pcnt_unit_config(&pcnt_config);
+
+      
    pcnt_event_enable(pcntUnit, PCNT_EVT_H_LIM);
    pcnt_event_enable(pcntUnit, PCNT_EVT_L_LIM);
 
