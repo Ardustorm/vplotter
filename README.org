@@ -9,6 +9,10 @@ Currently, there is support for controlling a DC motor and reading a quadrature 
 - Finish supporting 2 motors/encoders
 - Design and build physical frame/wheels of the robot.
 - integrate esp portion and webInterface portion
+- Clean up the debug page and make it nicer
+  - Such as having the graph choose different colors for each variable [DONE]
+  - Tickmarks for both axis
+  - autoscale
 
 * Notes
   Make sure espfs is on v0.9.0. The most recent versions change how the 'espFsOpen' function is called.
