@@ -1,0 +1,25 @@
+
+#
+# Serial flasher config
+#
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+
+#
+# Partition Table
+#
+CONFIG_PARTITION_TABLE_TWO_OTA=y
+CONFIG_PARTITION_TABLE_FILENAME="partitions_two_ota.csv"
+
+
+#
+# espfs
+#
+CONFIG_ESPFS_IMAGEROOTDIR="html"
+
+
+#
+# esphttpd
+#
+CONFIG_ESPHTTPD_ENABLED=y
+CONFIG_ESPHTTPD_USE_ESPFS=y
