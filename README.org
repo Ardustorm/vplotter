@@ -14,5 +14,17 @@ Currently, there is support for controlling a DC motor and reading a quadrature 
   - Tickmarks for both axis
   - autoscale
 
+* Ideas: (AKA notes to self)
+  PID loop (keep motors at specified location)
+  Something that takes in a path and generates points to feed to PID loop
+  Path generation (maybe 2 parts) (given gcode, output stuff to ...
+
+
+  position control (PID, motor control)
+  motion planing (generate points for ^, controls velocity, acceleration, etc.)
+  path planning (decides path robot will take to draw given
+  path generation (from images, patterns, spirography, [[https://www.youtube.com/watch?v=_5So027H_fM][Lissajous]])
+
+
 * Notes
   Make sure espfs is on v0.9.0. The most recent versions change how the 'espFsOpen' function is called.

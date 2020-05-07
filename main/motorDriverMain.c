@@ -54,7 +54,8 @@ void app_main()
     /* Initialize PCNT event queue and PCNT functions */
     pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
     /* pcnt_example_init(); */
-    encoderInit(PCNT_UNIT_0, 4, 5);
+    encoderInit(PCNT_UNIT_0, 33, 32);
+    encoderInit(PCNT_UNIT_1, 26, 25);
 
     /* Motor */
     xTaskCreate(mcpwm_example_brushed_motor_control, "mcpwm_example_brushed_motor_control", 4096, NULL, 5, NULL);
@@ -71,8 +72,8 @@ void testDebug(void *arg) {
    while(1) {
       /* sprintf(debugBuf, "d encoder %d, motorPosition %d \n",  encoderCount(), motorPosition ); */
       /* wsDebug(debugBuf); */
-
-      vTaskDelay(100/portTICK_RATE_MS);
+      printf("encoder0: %d \t encoder1: %d\n", encoderCount(PCNT_UNIT_0), encoderCount(PCNT_UNIT_1));
+      vTaskDelay(1000/portTICK_RATE_MS);
    }
 
 }
