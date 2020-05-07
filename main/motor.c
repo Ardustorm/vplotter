@@ -53,8 +53,6 @@ static void IRAM_ATTR pcnt_example_intr_handler(void *arg)
 }
 
 /* Sets up a pulse counter as an interrupt with given 2 pins
-   
-   TODO: utilize second channel to double encoder resolution
  */
 void encoderInit(pcnt_unit_t pcntUnit, int pinA, int pinB) {
    /* Prepare configuration for the PCNT unit */
@@ -149,35 +147,49 @@ void encoderEventsTask(void *arg) {
 }
 
 /* ############################# MOTOR ############################### */
-void mcpwm_example_gpio_initialize()
-{
-   printf("initializing mcpwm gpio...\n");
-   mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_PWM0A_OUT);
-   mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_PWM0B_OUT);
-}
 
+/* Initializes the gpio and timer needed for controlling a DC motor.
+   mcpwmUnit should be 0 or 1, freq is in Hz (I'm using ~1000), and then the gpio pins */
+void motorInit(mcpwm_unit_t mcpwmUnit, uint32_t freq, int pinA, int pinB) {
 
-void setSpeed(int motorNum , float duty_cycle) {
-   if(motorNum == 0) {
-      if(duty_cycle >= 0) {	/* forward */
-	 mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B);
-	 mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, duty_cycle);
-	 mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
+   /* Config MCPWM peripheral */
+   printf("Configuring Initial Parameters of mcpwm...\n");
+   mcpwm_config_t pwm_config;
+   pwm_config.frequency = freq;
+   pwm_config.cmpr_a = 0;    //duty cycle of PWMxA = 0
+   pwm_config.cmpr_b = 0;    //duty cycle of PWMxb = 0
+   pwm_config.counter_mode = MCPWM_UP_COUNTER;
+   pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
 
-      } else {			/* backward */
-	 mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A);
-	 mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, -1*duty_cycle);
-	 mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
-	 
-      }
-      
-   } else {
-      printf("\nINVALID MOTOR CONFIGURATION\n\n");
+   
+   /* init GPIO */
+   if( mcpwmUnit == MCPWM_UNIT_0){
+      mcpwm_gpio_init(mcpwmUnit, MCPWM0A, pinA);
+      mcpwm_gpio_init(mcpwmUnit, MCPWM0B, pinB);
+      mcpwm_init(mcpwmUnit, MCPWM_TIMER_0, &pwm_config);    //Configure PWM0A & PWM0B with above settings
+   }else {
+      mcpwm_gpio_init(mcpwmUnit, MCPWM1A, pinA);
+      mcpwm_gpio_init(mcpwmUnit, MCPWM1B, pinB);
+       mcpwm_init(mcpwmUnit, MCPWM_TIMER_1, &pwm_config);    //Configure PWM0A & PWM0B with above settings
    }
 
 }
 
+/* Set speed of the indicated motor (either 0 or 1) and a duty cycle cycle specified from -100 to +100) */
+void setSpeed(mcpwm_unit_t mcpwmUnit , float duty_cycle) {
+   if(duty_cycle >= 0) {	/* forward */
+      mcpwm_set_signal_low(mcpwmUnit, mcpwmUnit, MCPWM_OPR_B);
+      mcpwm_set_duty(mcpwmUnit, mcpwmUnit, MCPWM_OPR_A, duty_cycle);
+      mcpwm_set_duty_type(mcpwmUnit, mcpwmUnit, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
 
+   } else {			/* backward */
+      mcpwm_set_signal_low(mcpwmUnit, mcpwmUnit, MCPWM_OPR_A);
+      mcpwm_set_duty(mcpwmUnit, mcpwmUnit, MCPWM_OPR_B, -1*duty_cycle);
+      mcpwm_set_duty_type(mcpwmUnit, mcpwmUnit, MCPWM_OPR_B, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
+	 
+   }
+
+}
 /**
  * @brief Configure MCPWM module for brushed dc motor
  */
@@ -192,18 +204,8 @@ void mcpwm_example_brushed_motor_control(void *arg)
    wsRegisterVariable( &targetPosition, 'l', "targetPosition");
    wsRegisterVariable( &Kp, 'f', "Kp");
 
-   //1. mcpwm gpio initialization
-   mcpwm_example_gpio_initialize();
-
-   //2. initial mcpwm configuration
-   printf("Configuring Initial Parameters of mcpwm...\n");
-   mcpwm_config_t pwm_config;
-   pwm_config.frequency = 1000;    //frequency = 500Hz,
-   pwm_config.cmpr_a = 0;    //duty cycle of PWMxA = 0
-   pwm_config.cmpr_b = 0;    //duty cycle of PWMxb = 0
-   pwm_config.counter_mode = MCPWM_UP_COUNTER;
-   pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-   mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);    //Configure PWM0A & PWM0B with above settings
+   motorInit(MCPWM_UNIT_0, 1000, 13, 12);
+   motorInit(MCPWM_UNIT_1, 1000, 14, 27);
    while (1) {
       motorPosition = encoderCount(0);
 
@@ -212,7 +214,7 @@ void mcpwm_example_brushed_motor_control(void *arg)
       if(error >  100) error =  100;
       if(error < -100) error = -100;
       setSpeed(0, error);
-
+      setSpeed(1, error);
       sprintf(debugBuf, "d motorPosition %d, targetPosition %d, Kp %f \n", motorPosition, targetPosition, Kp );
       wsDebug(debugBuf);
 
