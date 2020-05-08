@@ -53,7 +53,8 @@ void app_main()
       initMotors(motorPinOut);
       
     /* Motor */
-    xTaskCreate(mcpwm_example_brushed_motor_control, "mcpwm_example_brushed_motor_control", 4096, NULL, 5, NULL);
+    xTaskCreate(motorControl, "motorControl", 4096, NULL, 5, NULL);
+
 
     xTaskCreate(testDebug, "test_debug", 4096, NULL, 5, NULL);
 

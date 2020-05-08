@@ -88,10 +88,10 @@ typedef struct MotorConfig {
    int motor1A;
    int motor1B;
 
-} motorConfig;
+} motor_config_t;
 
 
-static motorConfig motorPinOut = {
+static motor_config_t motorPinOut = {
 		      .encoder0A = 33,
 		      .encoder0B = 32,
 		      
@@ -101,12 +101,25 @@ static motorConfig motorPinOut = {
 		      .motor0A = 13,
 		      .motor0B = 12,
 		      
-		      .motor1A = 14,
-		      .motor1B = 27,
+		      .motor1A = 27,
+		      .motor1B = 14,
 
 };
 
-void initMotors( motorConfig config);
+typedef struct ControlConfig {
+   float p;
+   float i;
+   float d;
+
+   int32_t previousError;
+   int32_t integral;
+   
+} control_config_t;
+
+void initMotors( motor_config_t config);
+
+/* Task that controls motors */
+void motorControl(void *arg);
 
 /* ############################################################ */
 /* #############  BRAINSTORMING STRUCTURE BELOW  ############## */

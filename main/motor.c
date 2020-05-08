@@ -190,42 +190,56 @@ void setSpeed(mcpwm_unit_t mcpwmUnit , float duty_cycle) {
    }
 
 }
-/**
- * @brief Configure MCPWM module for brushed dc motor
+
+
+/* 
+   given a control structure (which will be unique for each device so it can store history),
+   and the set point, and current position, this function calculates output (from -100 to 100)
+   
+   * Assumes called at constant interval
  */
-void mcpwm_example_brushed_motor_control(void *arg)
-{
-   char debugBuf[64];
-   int32_t motorPosition = 0;
-   int32_t targetPosition = 0;
+float pid(control_config_t K, int32_t setpoint, int32_t current) {
    int32_t error;
-   float Kp = -0.5;
-   /* wsRegisterVariable( &motorPosition, 'l', "motorPosition"); */
-   wsRegisterVariable( &targetPosition, 'l', "targetPosition");
-   wsRegisterVariable( &Kp, 'f', "Kp");
+   int32_t derivative;
+   int32_t output;
+   error = (setpoint - current);
+   K.integral   += error;
+   derivative  = error - K.previousError;
+   
+   output = K.p * error + K.i * K.integral + K.d * derivative;
 
-   motorInit(MCPWM_UNIT_0, 1000, 13, 12);
-   motorInit(MCPWM_UNIT_1, 1000, 14, 27);
+   K.previousError = error;
+   
+   if(output >  100) output =  100;
+   if(output < -100) output = -100;
+   return output;
+}
+   
+
+void motorControl(void *arg) {
+   /* 
+      Set period
+    */
+   int32_t setPoint0 = 0;
+   int32_t setPoint1 = 0;
+   control_config_t ctrl0 = { .p=0.4, .i=0.1, .d=0.1, .previousError=0, .integral=0};
+   control_config_t ctrl1 = { .p=0.4, .i=0.1, .d=0.1, .previousError=0, .integral=0};
+
+   TickType_t xLastWakeTime;
+   xLastWakeTime = xTaskGetTickCount ();
+   
+
    while (1) {
-      motorPosition = encoderCount(0);
-
+      setSpeed(0, pid(ctrl0, setPoint0, encoderCount(0) ) );
+      setSpeed(1, pid(ctrl1, setPoint1, encoderCount(1) ) );
       
-      error = (motorPosition - targetPosition) * Kp;
-      if(error >  100) error =  100;
-      if(error < -100) error = -100;
-      setSpeed(0, error);
-      setSpeed(1, error);
-      sprintf(debugBuf, "d motorPosition %d, targetPosition %d, Kp %f \n", motorPosition, targetPosition, Kp );
-      wsDebug(debugBuf);
-
-      vTaskDelay(10 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, 10 / portTICK_RATE_MS);
    }
 }
 
 
 
-
-void initMotors( motorConfig config){
+void initMotors( motor_config_t config){
    /* Initialize PCNT event queue and PCNT functions */
    pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
 
@@ -233,6 +247,6 @@ void initMotors( motorConfig config){
    encoderInit(PCNT_UNIT_1, config.encoder1A, config.encoder1B);
    motorInit(MCPWM_UNIT_0, 1000, config.motor0A, config.motor0B);
    motorInit(MCPWM_UNIT_1, 1000, config.motor1A, config.motor1B);
-   
+}
 /* ########################## ^^ MOTOR ^^ ############################ */
 
