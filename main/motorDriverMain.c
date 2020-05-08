@@ -49,14 +49,9 @@ void app_main()
 
       printf("\nReady: %s\t%s\n", __DATE__, __TIME__);
 
-   /* ############################################################## */
 
-    /* Initialize PCNT event queue and PCNT functions */
-    pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
-    /* pcnt_example_init(); */
-    encoderInit(PCNT_UNIT_0, 33, 32);
-    encoderInit(PCNT_UNIT_1, 26, 25);
-
+      initMotors(motorPinOut);
+      
     /* Motor */
     xTaskCreate(mcpwm_example_brushed_motor_control, "mcpwm_example_brushed_motor_control", 4096, NULL, 5, NULL);
 

@@ -45,8 +45,6 @@
 #define PCNT_L_LIM_VAL      0x8000
 
 
-#define GPIO_PWM0A_OUT 13   //Set GPIO 15 as PWM0A
-#define GPIO_PWM0B_OUT 12   //Set GPIO 16 as PWM0B
 
 
 xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
@@ -75,14 +73,86 @@ int32_t encoderCount(pcnt_unit_t pcntUnit);
 
 
 
-struct Plotter{
-   /* 
-      left/right current count and target
 
-      config data:
-      velocity, acceleration, motor spacing
 
-    */
+typedef struct MotorConfig {
+   int encoder0A;
+   int encoder0B;
+
+   int encoder1A;
+   int encoder1B;
+
+   int motor0A;
+   int motor0B;
+   
+   int motor1A;
+   int motor1B;
+
+} motorConfig;
+
+
+static motorConfig motorPinOut = {
+		      .encoder0A = 33,
+		      .encoder0B = 32,
+		      
+		      .encoder1A = 26,
+		      .encoder1B = 25,
+
+		      .motor0A = 13,
+		      .motor0B = 12,
+		      
+		      .motor1A = 14,
+		      .motor1B = 27,
+
 };
+
+void initMotors( motorConfig config);
+
+/* ############################################################ */
+/* #############  BRAINSTORMING STRUCTURE BELOW  ############## */
+/* ############################################################ */
+
+/* 
+A queue that holds the equations that indicate the set point over time
+(so each item will be an equation that generates encoder set points)
+
+There should also be a function to change the state of the system
+(like an emergency stop)
+States:
+running - going through queue
+off     - motors off, no position hold
+pause   - stay in current position
+
+ */
+
+/* /\* Do I want seperate control for each motor? (probably not) *\/ */
+/* struct motorControlConfig { */
+/*    float Kp; */
+/*    float Ki; */
+/*    float Kd; */
+/*    int period;			/\* in mSec *\/ */
+/*    int status;			/\* off, pause/hold, running *\/ */
+/* }; */
+
+
+/* /\* Do I need this? *\/ */
+/* void getMotorPosition( int32_t * pos0, int32_t * pos1); */
+
+
+/* int initiateMotors( struct motorConfig); */
+/* int startMotorControl(struct motorControlConfig); */
+/* int updateMotorControl(struct motorControlConfig); */
+
+/* void setMotorPosition( int32_t pos0, int32_t pos1); */
+
+
+
+/* First steps:
+create config function that takes config struct and initializes everything
+
+Then create control task that is fed by a queue
+
+
+ */
 
 #endif /* __MOTOR_H__ */

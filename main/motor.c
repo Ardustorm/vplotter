@@ -224,5 +224,15 @@ void mcpwm_example_brushed_motor_control(void *arg)
 
 
 
+
+void initMotors( motorConfig config){
+   /* Initialize PCNT event queue and PCNT functions */
+   pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
+
+   encoderInit(PCNT_UNIT_0, config.encoder0A, config.encoder0B);
+   encoderInit(PCNT_UNIT_1, config.encoder1A, config.encoder1B);
+   motorInit(MCPWM_UNIT_0, 1000, config.motor0A, config.motor0B);
+   motorInit(MCPWM_UNIT_1, 1000, config.motor1A, config.motor1B);
+   
 /* ########################## ^^ MOTOR ^^ ############################ */
 
