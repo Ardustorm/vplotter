@@ -10,7 +10,7 @@ width = 9;
 pulley();
 
 /* difference(){ */
-/*    cylinder(d=15,h=4); */
+/*    cylinder(d=15,h=5); */
 /*    shaft(); */
 /*    /\* lead-in's *\/ */
 /*    translate([0,0,-0.1]) */
@@ -21,23 +21,28 @@ pulley();
 module pulley(){
    difference(){
       union(){
-	 cylinder(d=diameter, h=width);
-	 cylinder(d=diameter+2*lip_dia, h=lip_thick);
+	 difference(){
+	    union(){
+	       cylinder(d=diameter, h=width);
+	       cylinder(d=diameter+2*lip_dia, h=lip_thick);
+	    }
+
+	    cutouts();
+
+	    /* lead-in's */
+	    translate([0,0,width-1])
+	       cylinder(d1=3, d2=4,h=1.1);
+	    translate([0,0,-0.1])
+	       cylinder(d1=4, d2=3,h=1.1);
+
+	    /* Hole for thread */
+	    translate([0,-diameter/3,width/2])rotate([90,0,0])
+	       cylinder(r=.75,h=diameter);
+
+	 }
+	 cylinder(d=diameter/4, h=width);
       }
-
       shaft();
-      cutouts();
-
-      /* lead-in's */
-      translate([0,0,width-1])
-	 cylinder(d1=3, d2=4,h=1.1);
-      translate([0,0,-0.1])
-	 cylinder(d1=4, d2=3,h=1.1);
-
-      /* Hole for thread */
-      translate([0,-diameter/3,width/2])rotate([90,0,0])
-	 cylinder(r=.75,h=diameter);
-
    }
 }
 module cutouts() {
@@ -52,6 +57,7 @@ module cutouts() {
 }
 
 module shaft() {
+   scale([1.05,1.05,1.05])
    intersection(){
       cylinder(d=3.2, h=width*3, center=true);
       translate([0,0.25,0])

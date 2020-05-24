@@ -79,6 +79,7 @@
 	 
      } else if (evt.data[0] == "v") {/* variable packet */
 	 processVariablePacket(incomingData);
+	 processDataPacket(incomingData);/* TODO: This is just a hack to get stuff working since processVariablePacket isn't implemented */
 	 
      } else {
 	 writeToScreen('<span style="color: blue;">RECEIVED: ' + evt.data+'</span>');

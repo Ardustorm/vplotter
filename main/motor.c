@@ -197,6 +197,8 @@ void setSpeed(mcpwm_unit_t mcpwmUnit , float duty_cycle) {
    and the set point, and current position, this function calculates output (from -100 to 100)
    
    * Assumes called at constant interval
+
+   TODO: add feedforward for gravity
  */
 float pid(control_config_t K, int32_t setpoint, int32_t current) {
    int32_t error;
@@ -217,23 +219,49 @@ float pid(control_config_t K, int32_t setpoint, int32_t current) {
    
 
 void motorControl(void *arg) {
-   /* 
+   /*
       Set period
     */
    int32_t setPoint0 = 0;
    int32_t setPoint1 = 0;
-   control_config_t ctrl0 = { .p=0.4, .i=0.1, .d=0.1, .previousError=0, .integral=0};
-   control_config_t ctrl1 = { .p=0.4, .i=0.1, .d=0.1, .previousError=0, .integral=0};
+   control_config_t ctrl0 = { .p=0.2, .i=0.0, .d=0.0, .previousError=0, .integral=0};
+   control_config_t ctrl1 = { .p=0.2, .i=0.0, .d=0.0, .previousError=0, .integral=0};
 
    TickType_t xLastWakeTime;
    xLastWakeTime = xTaskGetTickCount ();
-   
 
+   /* we start with nothing in queue, and so we do nothing.
+      once we do have something, we just continue with it until it is done
+      and if there is nothing else in the queue, then we maintain last thing
+      updateSetpoints is required to return end point if called beyond initial timeframe
+ */
+   char debugBuf[256] = "  \n";
+   wsDebug("hello\n");
+   wsRegisterVariable( &setPoint0, 'l', "setPoint0");
+   wsRegisterVariable( &setPoint1, 'l', "setPoint1");
+
+   wsRegisterVariable( &(ctrl0.p), 'f', "ctrl0P");
+   wsRegisterVariable( &(ctrl1.p), 'f', "ctrl1P");
+
+   wsRegisterVariable( &(ctrl0.i), 'f', "ctrl0I");
+   wsRegisterVariable( &(ctrl1.i), 'f', "ctrl1I");
+
+   wsRegisterVariable( &(ctrl0.d), 'f', "ctrl0D");
+   wsRegisterVariable( &(ctrl1.d), 'f', "ctrl1D");
+
+   /* wait to get thing from queue */
    while (1) {
+
+      /* if(thingFromQueue.updateSetpoints(&set0,&set1) == DONE){ */
+      /* 	 /\* attempt get next thing from queue *\/ */
+      /* } */
+
       setSpeed(0, pid(ctrl0, setPoint0, encoderCount(0) ) );
       setSpeed(1, pid(ctrl1, setPoint1, encoderCount(1) ) );
-      
-      vTaskDelayUntil(&xLastWakeTime, 10 / portTICK_RATE_MS);
+
+      sprintf(debugBuf, "d setPoint0 %d, setPoint1 %d, pos0 %d, pos1 %d\n", setPoint0, setPoint1, encoderCount(0), encoderCount(1) );
+      wsDebug(debugBuf);
+      vTaskDelayUntil(&xLastWakeTime, 50 / portTICK_RATE_MS);
    }
 }
 
@@ -245,8 +273,8 @@ void initMotors( motor_config_t config){
 
    encoderInit(PCNT_UNIT_0, config.encoder0A, config.encoder0B);
    encoderInit(PCNT_UNIT_1, config.encoder1A, config.encoder1B);
-   motorInit(MCPWM_UNIT_0, 1000, config.motor0A, config.motor0B);
-   motorInit(MCPWM_UNIT_1, 1000, config.motor1A, config.motor1B);
+   motorInit(MCPWM_UNIT_0, 500, config.motor0A, config.motor0B);
+   motorInit(MCPWM_UNIT_1, 500, config.motor1A, config.motor1B);
 }
 /* ########################## ^^ MOTOR ^^ ############################ */
 

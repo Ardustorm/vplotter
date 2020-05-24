@@ -66,8 +66,6 @@ void app_main()
 void testDebug(void *arg) {
 
    while(1) {
-      /* sprintf(debugBuf, "d encoder %d, motorPosition %d \n",  encoderCount(), motorPosition ); */
-      /* wsDebug(debugBuf); */
       printf("encoder0: %d \t encoder1: %d\n", encoderCount(PCNT_UNIT_0), encoderCount(PCNT_UNIT_1));
       vTaskDelay(1000/portTICK_RATE_MS);
    }
