@@ -41,38 +41,24 @@
  *   - will be reset to zero.
  */
 #define PCNT_TEST_UNIT      PCNT_UNIT_0
-#define PCNT_H_LIM_VAL      0x7FFF
-#define PCNT_L_LIM_VAL      0x8000
+#define PCNT_H_LIM_VAL      ((int16_t) 0x7FFF)
+#define PCNT_L_LIM_VAL      ((int16_t) 0x8000)
 
 
 
 
-xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
-
-/* A sample structure to pass events from the PCNT
- * interrupt handler to the main program.
- */
-typedef struct {
-    int unit;  // the PCNT unit that originated an interrupt
-    uint32_t status; // information on the event type that caused the interrupt
-} pcnt_evt_t;
-
-
-void encoderInit(pcnt_unit_t pcntUnit, int pinA, int pinB);
-
-void mcpwm_example_gpio_initialize();
-void mcpwm_example_brushed_motor_control(void *arg);
-
-
-/* Task originally from esp idf pcnt example that reads encoder events */
-void encoderEventsTask(void *arg);
-
-
-/* returns the encoder count for specified encoder*/
-int32_t encoderCount(pcnt_unit_t pcntUnit);
-
-
-
+class Motor{
+public:
+   Motor();
+   void initEncoder( pcnt_unit_t pcntUnit, int pinA, int pinB);
+   void initPWM( mcpwm_unit_t mcpwmUnit, uint32_t freq, int pinA, int pinB);
+   void setSpeed( float speed);	// from -100 to +100
+   int32_t position();
+private:
+   pcnt_unit_t encoderNum;	// Which encoder this is using
+   mcpwm_unit_t mcpwmNum;	// Which motor controller this is using
+   
+};
 
 
 typedef struct MotorConfig {

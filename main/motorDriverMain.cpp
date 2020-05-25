@@ -9,6 +9,7 @@
    software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
    CONDITIONS OF ANY KIND, either express or implied.
 */
+
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
@@ -24,12 +25,16 @@
 #include "soc/mcpwm_reg.h"
 #include "soc/mcpwm_struct.h"
 
-
+extern "C"{
 #include "wifi.h"
+}
 #include "motor.h"
 
-
 void testDebug(void *arg);
+
+extern "C" {
+   void app_main();
+}
 
 void app_main()
 {
@@ -56,7 +61,7 @@ void app_main()
     xTaskCreate(motorControl, "motorControl", 4096, NULL, 5, NULL);
 
 
-    xTaskCreate(testDebug, "test_debug", 4096, NULL, 5, NULL);
+    // xTaskCreate(testDebug, "test_debug", 4096, NULL, 5, NULL);
 
     /* xTaskCreate(encoderEventsTask, "encodeEventsTask", 4096, NULL, 5, NULL); */
 
@@ -66,7 +71,7 @@ void app_main()
 void testDebug(void *arg) {
 
    while(1) {
-      printf("encoder0: %d \t encoder1: %d\n", encoderCount(PCNT_UNIT_0), encoderCount(PCNT_UNIT_1));
+      // printf("encoder0: %d \t encoder1: %d\n", encoderCount(PCNT_UNIT_0), encoderCount(PCNT_UNIT_1));
       vTaskDelay(1000/portTICK_RATE_MS);
    }
 

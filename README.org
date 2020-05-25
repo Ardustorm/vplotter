@@ -1,11 +1,13 @@
 * Intro
-This project is a work in progress, but the goal is to make a hanging vplotter robot that is completely self contained and is controlled by the esp32.
+This project is a work in progress, but the goal is to make a hanging vplotter robot that is completely self contained and is controlled by the esp32. It uses 2 DC motors with encoders instead of the usual stepper motors.
 
-Currently, there is support for controlling a DC motor and reading a quadrature encoder. In addition I have developed a websockets based debug interface that displays variables and allows the user to adjust them from the browser in real time.
+Currently, the project controls 2 motors with PID control loops, which will be the foundation for the project going forward. The parameters of PID loops and the set points can be modified from the web debug interface. (It is not a pretty interface, and it is pretty confusing, but it does allow for quick experimentation.) The web interface uses websockets to allow quick message exchanges from the esp32 and a web browser. This feature allows the webpage to graph realtime values of variables and modify them as needed.
 
+I am working on converting this project to C++ to make the code cleaner (and to gain experience using C++). This should result in cleaner, easier to read code, and potentially allow others to utilize portions of it (especially the debug ability) in other projects.
 
 
 * TODO:
+- Convert to C++
 - Finish supporting 2 motors/encoders
 - Design and build physical frame/wheels of the robot.
 - integrate esp portion and webInterface portion
