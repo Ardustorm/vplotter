@@ -1,7 +1,8 @@
 // TODO:
 //  Scaling
 //  Arcs
-//  Ignore parenthesis (and maybe %
+//  Ignore parenthesis (and maybe %)
+//  Set origin / offset
 var canvas = document.querySelector("#myCanvas");
 var context = canvas.getContext("2d");
 var curX = canvas.clientWidth/2;
@@ -41,6 +42,7 @@ function findVal(ch, lst) {
 	    return parseFloat(lst[i].substr(1));
 	}
     }
+    console.log("Could not find: ", ch, " in: ", lst)
     return null;
 }
 
@@ -53,6 +55,8 @@ function evalGcode(s) {
     case "G1" :
     case "G00" :
     case "G01" :
+    case "G02" :
+    // case "G03" :
 	// console.log("test: " + cmd);
 	var x = findVal("X", cmd);
 	var y = findVal("Y", cmd);
@@ -62,26 +66,40 @@ function evalGcode(s) {
 	else console.log("failedY");
 	break;
 	
-    case "G02" :
-    case "G03" :
-	var x0 = curX;
-	var y0 = curY;
-	var x = findVal("X", cmd);
-	var y = findVal("Y", cmd);
-	var i = findVal("I", cmd);
-	var j = findVal("J", cmd);
-
-	var theta0 = Math.atan2(y0-j, x0-i);
-	var theta1 = Math.atan2(y-j, x-i);
-	var R = Math.sqrt( Math.pow(y0-j, 2) + Math.pow(x0-i,2));
-	console.log(theta0, theta1, R);
-	for( var t = 0; t < 1; t+=.1) {
-	    curX = i + R * Math.cos(theta0 + t * (theta1-theta0));
-	    curY = j + R * Math.sin(theta0 + t * (theta1-theta0));
-	    console.log("Circle:", t, curX, curY, theta0 + t * theta1 / (2*Math.PI)),  t* theta1/(2*Math.PI);
-	    update();
+    // case "G02" :
+    // 	var x0 = curX;
+    // 	var y0 = curY;
+    // 	var x = findVal("X", cmd);
+    // 	var y = findVal("Y", cmd);
+    // 	var i = findVal("I", cmd);
+    // 	var j = findVal("J", cmd);
+    // 	// Still needs work
+    // 	var theta0 = Math.atan2(y0-j, x0-i);
+    // 	var theta1 = Math.atan2(y-j, x-i);
+    // 	var R = Math.sqrt( Math.pow(y0-j, 2) + Math.pow(x0-i,2));
+    // 	for( var t = 0; t < 1; t+=.1) {
+    // 	    curX = i + R * Math.cos(theta0 - t * (2*Math.PI -(theta1-theta0)) );
+    // 	    curY = j + R * Math.sin(theta0 - t * (2*Math.PI -(theta1-theta0)) );
+    // 	    update();
 	    
-	}
+    // 	}
+    // 	break;
+    case "G03" :
+    	var x0 = curX;
+    	var y0 = curY;
+    	var x = findVal("X", cmd);
+    	var y = findVal("Y", cmd);
+    	var i = findVal("I", cmd);
+    	var j = findVal("J", cmd);
+
+    	var theta0 = Math.atan2(y0-j, x0-i);
+    	var theta1 = Math.atan2(y-j, x-i);
+    	var R = Math.sqrt( Math.pow(y0-j, 2) + Math.pow(x0-i,2));
+    	for( var t = 0; t < 1; t+=.1) {
+    	    curX = i + R * Math.cos(theta0 + t * (theta1-theta0));
+    	    curY = j + R * Math.sin(theta0 + t * (theta1-theta0));
+    	    update();
+    	}
 	
 	break;
     default:
@@ -124,11 +142,11 @@ function update() {
 
     drawingCtx.globalAlpha = .7;
 
-    drawingCtx.beginPath();
-    drawingCtx.arc(curX, curY, 2, 0, 2 * Math.PI, true);
-    drawingCtx.fillStyle = "#1F1F1F";
-    drawingCtx.fill();
-    drawingCtx.closePath();
+    // drawingCtx.beginPath();
+    // drawingCtx.arc(curX, curY, 2, 0, 2 * Math.PI, true);
+    // drawingCtx.fillStyle = "#1F1F1F";
+    // drawingCtx.fill();
+    // drawingCtx.closePath();
 
     context.drawImage(drawingCan, 0, 0);
 
@@ -141,13 +159,13 @@ function update() {
 	curY != update.prevY) {
 	drawingCtx.beginPath();
 	drawingCtx.moveTo(update.prevX, update.prevY);
-	drawingCtx.lineTo(curX,curY);
+	drawingCtx.lineTo(curX*2,-curY*2+600);
 	drawingCtx.stroke();
     }
 
     
-    update.prevX = curX;
-    update.prevY = curY;
+    update.prevX = curX*2;
+    update.prevY = -curY*2 +600;
     // requestAnimationFrame(update);
 }
 
