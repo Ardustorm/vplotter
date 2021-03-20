@@ -1,0 +1,162 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="./uPlot.min.css">
+  <script src="./uPlot.iife.min.js"></script>
+
+  <link rel="stylesheet" href="./picnic.min.css">
+  <style>
+    .myText {
+        width: unset;
+    }
+
+    .u-series th {
+        background-color: unset;
+        color: unset;
+    }
+
+    .u-inline tr:nth-child(2n){
+        background-color:unset;
+    }
+  </style>
+  <head>
+    <script src="./vplot.js"></script>
+  </head>
+
+  <body>
+    <!-- Tabs and modal might be useful in future -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <div id="output"></div>
+    <button onclick="sendPacketButton()">Send Packet</button>
+    <button onclick="update()">update</button>
+    <table class="primary" id="updateVariable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Value</th>
+          <th>Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>test var 1</td>
+          <td>12</td>
+          <td>
+            <input class="myText" type="number" id='test1' placeholder="" size='4'>
+            <button for='test1' class="btn">update</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <script>
+      let now = Math.floor(Date.now()/1e3);
+      let shift = 0;
+
+      let length = 600;
+
+      let _1 = Array(length).fill(1);
+      let _2 = Array(length).fill(2);
+      let _3 = Array(length).fill(3);
+      let _4 = Array(length).fill(4);
+      let _5 = Array(length).fill(5);
+
+      let data = getData(shift);
+
+      function getData(min) {
+          let xs = [];
+          let ys = [];
+
+          for (let i = min; i < min + length; i++) {
+              xs.push(now + i/1000);
+              ys.push(Math.sin(i/16) * 5);
+          }
+
+          return [
+              xs,
+              ys,
+              _1,
+              _2,
+              _3,
+              _4,
+              _5,
+          ];
+      }
+
+      const opts = {
+          title: "6 series x 600 points @ 60fps",
+          width: 1450,
+          height: 600,
+          pxAlign: false,
+          scales: {
+              x: {
+                  //    auto: false,
+                  //range: [-6, 6],
+                  time:true,
+                  dir:1,
+              },
+              y: {
+                  //    auto: false,
+                  range: [-6, 6],
+              }
+          },
+          axes: [
+              {
+                  space: 300,
+              }
+          ],
+          series: [
+              {},
+              {
+                  label: "Sine",
+                  stroke: "red",
+                  fill: "rgba(255,0,0,0.1)",
+              },
+              {
+                  stroke: "green",
+                  fill: "#4caf505e",
+              },
+              {
+                  stroke: "blue",
+                  fill: "#0000ff20",
+              },
+              {
+                  stroke: "orange",
+                  fill: "#ffa5004f",
+              },
+              {
+                  stroke: "magenta",
+                  fill: "#ff00ff20",
+              },
+              {
+                  stroke: "purple",
+                  fill: "#80008020",
+              },
+          ],
+      };
+
+      let u = new uPlot(opts, data, document.getElementById("output"));
+
+      /*
+        setInterval(() => {
+        shift += 1;
+        data = getData(shift);
+        u.setData(data);
+        }, 50);
+      */
+
+      function update() {
+          shift += 1;
+          data = getData(shift);
+          u.setData(data);
+          requestAnimationFrame(update);
+      }
+
+//      update();
+    </script>
+  </body>
+
+</html>
