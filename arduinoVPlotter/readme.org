@@ -1,0 +1,12 @@
+
+* Overview
+  - Right now I modified the sample script to be a simple websockets messaging app
+  - I ran into a lot of issues, but the problem was me. I wasn't converting a 'String' into a char array which lead to a lot of issues.
+
+* Notes:
+  - Installed via zip:
+    - https://github.com/me-no-dev/AsyncTCP
+    - https://github.com/me-no-dev/ESPAsyncWebServer
+  - Installed this to upload SPIFFS data:
+    - https://github.com/me-no-dev/arduino-esp32fs-plugin
+  - To use the built in js Ace editor navigate to url/edit
