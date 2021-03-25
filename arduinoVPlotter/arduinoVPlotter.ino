@@ -24,12 +24,10 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
         String msg = "";
         if(info->final && info->index == 0 && info->len == len){
             //the whole message is in a single frame and we got all of it's data
-            Serial.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(),
-                          (info->opcode == WS_TEXT)?"text":"binary", info->len);
-
-            if(info->opcode == WS_TEXT){
-            } else {
+            if(info->opcode == WS_BINARY){
                 wsData.processPacket(client, data, len);
+            } else {
+                Serial.printf("\nNon-Binary WS packet received\n ");
             }
         } else {
             Serial.printf("\nERR: WS data split in multiple frames! This functionality has been removed. "

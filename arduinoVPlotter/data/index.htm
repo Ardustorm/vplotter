@@ -17,26 +17,45 @@
           ws.send(buf);
       }
 
-      var myVar;
-      var counts = 100;
 
-      function testFunc(d) {
-          if(counts == 100) {
-              start = console.time("callAPITimer");
+      var variables = new Array();
+
+      var myVar;
+      function processData(d) {
+          var view = new DataView(d);
+          var i = 1;
+          while(i+1 < d.byteLength) {
+              console.log("Num: " + view.getUint8(i));
+              i++;
+              // TODO: need way to add way to identify if Int or Float
+              console.log("I: " + view.getInt32(i, true) + "\tF: " + view.getFloat32(i, true));
+              i+=4;
           }
+      }
+      function processSetup(d) {
+          var arr = new Uint8Array(d)
+          var i = 1;
+          while(i < d.byteLength) {
+              var num = arr[i++];
+              // TODO: Add ability to process type
+              var str = String.fromCharCode.apply(String, new Uint8Array(d, i, (arr.indexOf(0,i))-i));
+              console.log("Num: " + num);
+              console.log(str);
+              i = arr.indexOf(0,i) + 1;
+          }
+      }
+      function testFunc(d) {
           myVar = d;
-          if(d[0] == 'S'){
-              console.log("setup");
-          } else if(d[0] == 'D') {
-              console.log("data");
+          var view = new DataView(d);
+          var opcode = String.fromCharCode(view.getUint8(0));
+          if(opcode == 'S'){
+              processSetup(d);
+
+          } else if(opcode == 'D') {
+              processData(d);
+
           } else {
-              // Testing only
-              if(counts > 0) {
-                  counts -= 1;
-                  sendBlob("S");
-              } else {
-                  console.timeEnd('callAPITimer');
-              }
+              console.log("unknown");
           }
       }
       function startSocket(){
