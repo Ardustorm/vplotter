@@ -33,29 +33,37 @@
 
 
       var variables = new Array();
-
+      loop = 0;
       var myVar;
       function processData(d) {
+          var table = document.getElementById("dataConfig");
           var view = new DataView(d);
           var i = 1;
           while(i+1 < d.byteLength) {
               var varNum = view.getUint8(i);
               i++;
 
-              // Request data if we don't currently have that varaiable number
-              if(varNum > variables.length) {
+              // Request data if we don't currently have that varaiable number and exit
+              if(varNum >= variables.length) {
                   sendBlob("S");
-                  variables[varNum]["value"] = NaN;
-              } else if (variables[varNum]["type"] == 'f') {
+                  return; // Stop processing packet since we can't store all of the info
+              }
+              if (variables[varNum]["type"] == 'f') {
                   variables[varNum]["value"] = view.getFloat32(i, true);
               } else if (variables[varNum]["type"] == 'i') {
                   variables[varNum]["value"] = view.getInt32(i, true);
               } else {
                   console.log("UNKNOWN DATA TYPE");
               }
-
-              console.log(variables[varNum]["name"] +": "+ variables[varNum]["value"]);
+              table.rows[varNum+1].cells[1].innerHTML = variables[varNum]["value"];
               i+=4;
+              if(loop == 10) {
+                  start = console.time("callAPITimer");
+              }
+              if(loop == 10010) {
+                  console.timeEnd('callAPITimer')
+              }
+              loop++;
           }
       }
       function processSetup(d) {
@@ -69,8 +77,6 @@
 
               // TODO: Add ability to process type
               var str = String.fromCharCode.apply(String, new Uint8Array(d, i, (arr.indexOf(0,i))-i));
-              console.log("Num: " + num + "\t type: " + type);
-              console.log(str);
               i = arr.indexOf(0,i) + 1;
 
               // Populate table and array with data if needed
@@ -84,11 +90,10 @@
                       "</td>";
               }
               variables[num] = {"name": str, "type":type};
-              var row = table.rows[num+1].cells[0].innerHTML = str;
+              table.rows[num+1].cells[0].innerHTML = str;
           }
       }
       function updateVariable( varNum, value) {
-          console.log("Updating: " + variables[varNum].name + " to -> " + value);
           var a = new ArrayBuffer(6);
           var packet = new DataView(a);
           packet.setUint8(0, "V".charCodeAt(0), true);
@@ -109,14 +114,17 @@
 
           } else if(opcode == 'D') {
               processData(d);
+              // TODO: Right now I'm getting about 330 Hz update rate, but I could probably improve
+              // that by skipping the 'sendBlob' function and sending the binary data directly
+              sendBlob("D");
 
           } else {
               console.log("unknown");
           }
       }
       function startSocket(){
-          // ws = new WebSocket('ws://'+document.location.host+'/ws',['arduino']);
-          ws = new WebSocket('ws://192.168.0.180/ws',['arduino']);
+          ws = new WebSocket('ws://'+document.location.host+'/ws',['arduino']);
+          // ws = new WebSocket('ws://192.168.0.180/ws',['arduino']);
           ws.binaryType = "arraybuffer";
           ws.onerror = function(e){
               console.log("ws error", e);
@@ -141,6 +149,7 @@
   <body id="body" onload="onBodyLoad()">
     <br>
     <br>
+    <button onclick="sendBlob('D')">start stream</button>
     <table class="primary" id="dataConfig">
       <thead>
         <tr>
