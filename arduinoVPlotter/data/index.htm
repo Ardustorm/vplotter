@@ -3,10 +3,11 @@
 <html>
   <head>
     <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" href="./uPlot.min.css">
+    <script src="./uPlot.iife.min.js"></script>
+
+    <link rel="stylesheet" href="./picnic.min.css">
     <title>Test</title>
-    <input type="text" id="test"  value="" />
-    <button onclick="ws.send(document.getElementById('test').value)" id="testButton" >Send</button>
-    <br/>
 
     <script type="text/javascript">
       var ws = null;
@@ -25,23 +26,49 @@
           var view = new DataView(d);
           var i = 1;
           while(i+1 < d.byteLength) {
-              console.log("Num: " + view.getUint8(i));
+              var varNum = view.getUint8(i);
               i++;
-              // TODO: need way to add way to identify if Int or Float
-              console.log("I: " + view.getInt32(i, true) + "\tF: " + view.getFloat32(i, true));
+
+              // Request data if we don't currently have that varaiable number
+              if(varNum > variables.length) {
+                  sendBlob("S");
+                  variables[varNum]["value"] = NaN;
+              } else if (variables[varNum]["type"] == 'f') {
+                  variables[varNum]["value"] = view.getFloat32(i, true);
+              } else if (variables[varNum]["type"] == 'i') {
+                  variables[varNum]["value"] = view.getInt32(i, true);
+              } else {
+                  console.log("UNKNOWN DATA TYPE");
+              }
+
+              console.log(variables[varNum]["name"] +": "+ variables[varNum]["value"]);
               i+=4;
           }
       }
       function processSetup(d) {
+          var table = document.getElementById("dataConfig");
           var arr = new Uint8Array(d)
           var i = 1;
+
           while(i < d.byteLength) {
               var num = arr[i++];
+              var type = String.fromCharCode(arr[i++]);
+
               // TODO: Add ability to process type
               var str = String.fromCharCode.apply(String, new Uint8Array(d, i, (arr.indexOf(0,i))-i));
-              console.log("Num: " + num);
+              console.log("Num: " + num + "\t type: " + type);
               console.log(str);
               i = arr.indexOf(0,i) + 1;
+
+              // Populate table and array with data if needed
+              while(variables.length <= num) {
+                  variables.push({"name": "N/A", "type":null, "value":NaN});
+                  var row = table.insertRow(-1);
+                  row.innerHTML = "<td>N</td><td>v</td><td>"+num+"</td>";
+                  console.log("pushing");
+              }
+              variables[num] = {"name": str, "type":type};
+              var row = table.rows[num+2].cells[0].innerHTML = str;
           }
       }
       function testFunc(d) {
@@ -83,9 +110,27 @@
     </script>
   </head>
   <body id="body" onload="onBodyLoad()">
-    <pre id="dbg"></pre>
-    <div id="input_div">
-      $<input type="text" value="" id="input_el">
-    </div>
+    <br>
+    <br>
+    <table class="primary" id="dataConfig">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Value</th>
+          <th>Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <!-- <td>test var 1</td> -->
+          <!-- <td>12</td> -->
+          <!-- <td> -->
+          <!--   <input class="myText" type="number" id='test1' placeholder="" size='4'> -->
+          <!--   <button for='test1' id='btn1' onclick="btn1Run()" class="btn">update</button> -->
+          <!-- </td> -->
+        </tr>
+        
+      </tbody>
+    </table>
   </body>
 </html>

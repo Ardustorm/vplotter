@@ -41,8 +41,8 @@ void WsData::sendNames(AsyncWebSocketClient * client) {
         int nameLength = strlen(vars[varNum].name);
         Serial.printf("Name length[%d]: %d\n", varNum, nameLength);
 
-        // Check if we have room for var #, var name, & null termination
-        if((i + 1 + nameLength + 1 ) >= MAX_PACKET_SIZE) { // no room:
+        // Check if we have room for var #, var type, var name, & null termination
+        if((i + 2 + nameLength + 1 ) >= MAX_PACKET_SIZE) { // no room:
             Serial.printf("Sending packet\n");
             // send buff and reset
             client->binary(out,i);
@@ -56,12 +56,13 @@ void WsData::sendNames(AsyncWebSocketClient * client) {
         }
         Serial.printf("About to pack buffer[%d]\n", i);
         out[i] = varNum;
-        memcpy(&out[i+1], (void *) vars[varNum].name, nameLength);
-        out[i+nameLength+1] = '\0';
-        i += 1 + nameLength + 1;
+        out[i+1] = vars[varNum].type;
+        memcpy(&out[i+2], (void *) vars[varNum].name, nameLength);
+        out[i+nameLength+2] = '\0';
+        i += 2 + nameLength + 1;
     }
     // send out
-                Serial.printf("Sending packet end\n");
+    Serial.printf("Sending packet end\n");
 
     client->binary(out,i);
 }
