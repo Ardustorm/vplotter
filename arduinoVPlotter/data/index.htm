@@ -9,6 +9,19 @@
     <link rel="stylesheet" href="./picnic.min.css">
     <title>Test</title>
 
+    <style>
+      .myText {
+          width: unset;
+      }
+      .u-series th {
+          background-color: unset;
+          color: unset;
+      }
+      .u-inline tr:nth-child(2n){
+          background-color:unset;
+      }
+    </style>
+
     <script type="text/javascript">
       var ws = null;
 
@@ -64,12 +77,28 @@
               while(variables.length <= num) {
                   variables.push({"name": "N/A", "type":null, "value":NaN});
                   var row = table.insertRow(-1);
-                  row.innerHTML = "<td>N</td><td>v</td><td>"+num+"</td>";
-                  console.log("pushing");
+                  row.innerHTML = "<td>N</td><td>v</td><td>"+
+                      "<input class='myText' type='number' step='any' id='updateVal"+num+"' size=6> " +
+                      "<button onclick='updateVariable("+num +
+                      ", document.getElementById(\"updateVal"+num+"\").value)'>update</button>" +
+                      "</td>";
               }
               variables[num] = {"name": str, "type":type};
-              var row = table.rows[num+2].cells[0].innerHTML = str;
+              var row = table.rows[num+1].cells[0].innerHTML = str;
           }
+      }
+      function updateVariable( varNum, value) {
+          console.log("Updating: " + variables[varNum].name + " to -> " + value);
+          var a = new ArrayBuffer(6);
+          var packet = new DataView(a);
+          packet.setUint8(0, "V".charCodeAt(0), true);
+          packet.setUint8(1, varNum, true);
+          if(variables[varNum].type == 'f') {
+              packet.setFloat32(2, value, true);
+          } else if(variables[varNum].type == 'i') {
+              packet.setInt32(2, value, true);
+          }
+          ws.send(a);
       }
       function testFunc(d) {
           myVar = d;
@@ -107,7 +136,7 @@
       function onBodyLoad(){
           startSocket();
       }
-    </script>
+      </script>
   </head>
   <body id="body" onload="onBodyLoad()">
     <br>
@@ -121,15 +150,6 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <!-- <td>test var 1</td> -->
-          <!-- <td>12</td> -->
-          <!-- <td> -->
-          <!--   <input class="myText" type="number" id='test1' placeholder="" size='4'> -->
-          <!--   <button for='test1' id='btn1' onclick="btn1Run()" class="btn">update</button> -->
-          <!-- </td> -->
-        </tr>
-        
       </tbody>
     </table>
   </body>

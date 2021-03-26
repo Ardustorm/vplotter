@@ -13,6 +13,7 @@ struct wsDataStore {
     union {
         float * f;
         int  * i;
+        void  * v;
     } var;
 };
 
@@ -29,6 +30,7 @@ public:
     void sendNames(AsyncWebSocketClient * client);
     void sendData(AsyncWebSocketClient * client);
     void processPacket(AsyncWebSocketClient * client, uint8_t *data, size_t len);
+    void updateVars(uint8_t *data, size_t len);
 private:
     wsDataStore vars[MAX_VAR];
     int currentIndex = 0;

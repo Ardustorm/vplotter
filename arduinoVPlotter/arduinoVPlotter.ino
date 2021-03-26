@@ -105,8 +105,8 @@ void setup(){
     server.begin();
 
 
-    wsData.add(&var1, "My fancy var 1(int)");
-    wsData.add(&var2, "My fancy var 1(float)");
+    wsData.add(&var1, "My fancy var 1(float)");
+    wsData.add(&var2, "My fancy var 2(int)");
 
 
 }

@@ -73,18 +73,28 @@ void WsData::sendData(AsyncWebSocketClient * client) {
     int i = 0;
     while (i < currentIndex) {
         out[i*5 + 1] = (char) i;
-        memcpy(&out[i*5+2], (void *)vars[i].var.f, sizeof(float)); //todo check that it works for floats and ints
+        memcpy(&out[i*5+2], vars[i].var.v, sizeof(float)); //todo check that it works for floats and ints
         i++;
     }
     // send out
     client->binary(out,i*5+2);
 }
 
+void WsData::updateVars(uint8_t *data, size_t len) {
+    int i = 1;                  // Skipthe op code 'V'
+    while (i+4 < len) {
+        Serial.printf("Processing update Var\n");
+        int varNum = data[i];
+        // TODO: is memcopy atomic? I know writing 32 bit values are, not sure about copy though
+        memcpy(vars[varNum].var.v, (void *)&data[i+1], sizeof(float)); //todo check that it works for floats and ints
+        i+=5;
+    }
+}
 
-void WsData::processPacket(AsyncWebSocketClient * client, uint8_t *data, size_t len){
+void WsData::processPacket(AsyncWebSocketClient * client, uint8_t *data, size_t len) {
     if(len == 0) { return; }
 
-    switch(data[0]) {
+    switch (data[0]) {
     case 'S':
         Serial.printf("Setup request\n");
         sendNames(client);
@@ -93,6 +103,9 @@ void WsData::processPacket(AsyncWebSocketClient * client, uint8_t *data, size_t 
     case 'D':
         sendData(client);
         // TODO: eventually we will check this to see if we need to update any variables
+        break;
+    case 'V':
+        updateVars(data, len);
         break;
     default:
         Serial.printf("Unknown packet type: %c\n", data[0]);
