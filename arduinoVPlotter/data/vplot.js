@@ -1,5 +1,10 @@
 var ws = null;
+
+// For colors: medialab.github.io/iwanthue/
+var colors = ["#ff8673", "#001f5d", "#ffbd70", "#bd87ff", "#e1ffc9", "#9f001f", "#00977e", "#ffc4d2", "#003933", "#e5f1ff"]
 var variables = new Array();
+var startTime = Date.now()/1e3;
+var time = new Array();
 loop = 0;
 
 function sendBlob(str){
@@ -17,6 +22,10 @@ function processData(d) {
     while(i+1 < d.byteLength) {
         var varNum = view.getUint8(i);
         i++;
+        // When the zeroth variable is recieved, use that to keep track of time
+        if(varNum == 0) {
+            time.push(Date.now()/1e3 - startTime);
+        }
 
         // Request data if we don't currently have that varaiable number and exit
         if(varNum >= variables.length) {
@@ -70,6 +79,12 @@ function processSetup(d) {
         variables[num].name = str;
         variables[num].type = type
         table.rows[num+1].cells[0].innerHTML = str;
+
+
+        // Setup graph
+        if(u.series.length -1 == num) { // TODO: handle potentially skipped numbers
+            u.addSeries({stroke: colors[num % colors.length], label:variables[num].name}, num+1);
+        }
     }
 }
 function updateVariable( varNum, value) {
@@ -128,89 +143,48 @@ function onBodyLoad(){
 
 
 
-
+// TODO: uplot: add lines, add timing?, colors, titles
 
 
 
 
 function getData(min) {
-    let xs = [];
-    let ys = [];
-    let ds = [];
+    let data = [];
 
-    for (let i = min; i < min + length; i++) {
-        xs.push(now + i/1000);
-        ys.push(Math.sin(i/16) * 5);
-    }
+    let l = time.length;
+    time.splice(0, l - length);
+    data.push(time);
+
     for( let i=0; i < variables.length; i++) {
         let l = variables[i].hist.length;
         variables[i].hist.splice(0, l - length);
 
-        ds = variables[0].hist;
+        data.push(variables[i].hist);
     }
-
-
-
-    return [
-        xs,
-        ys,
-        ds,
-        _2,
-        _3,
-        _4,
-        _5,
-    ];
+    return data;
 }
 
 const opts = {
-    title: "6 series x 600 points @ 60fps",
+    title: "Data",
     width: 1000,
     height: 600,
     pxAlign: false,
     scales: {
         x: {
-            //    auto: false,
-            //range: [-6, 6],
-            time:true,
+            time:false,
             dir:1,
         },
         y: {
                auto: true,
-            // range: [-6, 6],
         }
     },
     axes: [
         {
-            space: 300,
+            space: 100,
         }
     ],
     series: [
         {},
-        {
-            label: "Sine",
-            stroke: "red",
-            fill: "rgba(255,0,0,0.1)",
-        },
-        {
-            stroke: "green",
-            fill: "#4caf505e",
-        },
-        {
-            stroke: "blue",
-            fill: "#0000ff20",
-        },
-        {
-            stroke: "orange",
-            fill: "#ffa5004f",
-        },
-        {
-            stroke: "magenta",
-            fill: "#ff00ff20",
-        },
-        {
-            stroke: "purple",
-            fill: "#80008020",
-        },
     ],
 };
 
