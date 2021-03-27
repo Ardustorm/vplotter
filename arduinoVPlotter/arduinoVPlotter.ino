@@ -114,5 +114,6 @@ void setup(){
 void loop(){
     ArduinoOTA.handle();
     ws.cleanupClients();
-    delay(1000);
+    delay(100);
+    var1 += random(-100,101)/100.0;
 }

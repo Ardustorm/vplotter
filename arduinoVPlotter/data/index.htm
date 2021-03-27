@@ -21,135 +21,18 @@
           background-color:unset;
       }
     </style>
-
-    <script type="text/javascript">
-      var ws = null;
-
-      function sendBlob(str){
-          var buf = new Uint8Array(str.length);
-          for (var i = 0; i < str.length; ++i) buf[i] = str.charCodeAt(i);
-          ws.send(buf);
-      }
-
-
-      var variables = new Array();
-      loop = 0;
-      var myVar;
-      function processData(d) {
-          var table = document.getElementById("dataConfig");
-          var view = new DataView(d);
-          var i = 1;
-          while(i+1 < d.byteLength) {
-              var varNum = view.getUint8(i);
-              i++;
-
-              // Request data if we don't currently have that varaiable number and exit
-              if(varNum >= variables.length) {
-                  sendBlob("S");
-                  return; // Stop processing packet since we can't store all of the info
-              }
-              if (variables[varNum]["type"] == 'f') {
-                  variables[varNum]["value"] = view.getFloat32(i, true);
-              } else if (variables[varNum]["type"] == 'i') {
-                  variables[varNum]["value"] = view.getInt32(i, true);
-              } else {
-                  console.log("UNKNOWN DATA TYPE");
-              }
-              table.rows[varNum+1].cells[1].innerHTML = variables[varNum]["value"];
-              i+=4;
-              if(loop == 10) {
-                  start = console.time("callAPITimer");
-              }
-              if(loop == 10010) {
-                  console.timeEnd('callAPITimer')
-              }
-              loop++;
-          }
-      }
-      function processSetup(d) {
-          var table = document.getElementById("dataConfig");
-          var arr = new Uint8Array(d)
-          var i = 1;
-
-          while(i < d.byteLength) {
-              var num = arr[i++];
-              var type = String.fromCharCode(arr[i++]);
-
-              // TODO: Add ability to process type
-              var str = String.fromCharCode.apply(String, new Uint8Array(d, i, (arr.indexOf(0,i))-i));
-              i = arr.indexOf(0,i) + 1;
-
-              // Populate table and array with data if needed
-              while(variables.length <= num) {
-                  variables.push({"name": "N/A", "type":null, "value":NaN});
-                  var row = table.insertRow(-1);
-                  row.innerHTML = "<td>N</td><td>v</td><td>"+
-                      "<input class='myText' type='number' step='any' id='updateVal"+num+"' size=6> " +
-                      "<button onclick='updateVariable("+num +
-                      ", document.getElementById(\"updateVal"+num+"\").value)'>update</button>" +
-                      "</td>";
-              }
-              variables[num] = {"name": str, "type":type};
-              table.rows[num+1].cells[0].innerHTML = str;
-          }
-      }
-      function updateVariable( varNum, value) {
-          var a = new ArrayBuffer(6);
-          var packet = new DataView(a);
-          packet.setUint8(0, "V".charCodeAt(0), true);
-          packet.setUint8(1, varNum, true);
-          if(variables[varNum].type == 'f') {
-              packet.setFloat32(2, value, true);
-          } else if(variables[varNum].type == 'i') {
-              packet.setInt32(2, value, true);
-          }
-          ws.send(a);
-      }
-      function testFunc(d) {
-          myVar = d;
-          var view = new DataView(d);
-          var opcode = String.fromCharCode(view.getUint8(0));
-          if(opcode == 'S'){
-              processSetup(d);
-
-          } else if(opcode == 'D') {
-              processData(d);
-              // TODO: Right now I'm getting about 330 Hz update rate, but I could probably improve
-              // that by skipping the 'sendBlob' function and sending the binary data directly
-              sendBlob("D");
-
-          } else {
-              console.log("unknown");
-          }
-      }
-      function startSocket(){
-          ws = new WebSocket('ws://'+document.location.host+'/ws',['arduino']);
-          // ws = new WebSocket('ws://192.168.0.180/ws',['arduino']);
-          ws.binaryType = "arraybuffer";
-          ws.onerror = function(e){
-              console.log("ws error", e);
-          };
-          ws.onmessage = function(e){
-              var msg = "";
-              if(e.data instanceof ArrayBuffer){
-                  // msg = "BIN:" +
-                  //      Array.prototype.map.call(new Uint8Array(e.data), x => ('00' + x.toString(16)).slice(-2)).join('');
-                  testFunc(e.data);
-              } else {
-                  msg = "TXT:"+e.data;
-              }
-          };
-
-      }
-      function onBodyLoad(){
-          startSocket();
-      }
-      </script>
+  <head>
+    <script src="./vplot.js"></script>
   </head>
+
   <body id="body" onload="onBodyLoad()">
     <br>
+    <div id="output"></div>
     <br>
     <button onclick="sendBlob('D')">start stream</button>
+
+    <button onclick="update()">start graph</button>
+
     <table class="primary" id="dataConfig">
       <thead>
         <tr>
@@ -161,5 +44,10 @@
       <tbody>
       </tbody>
     </table>
+    <script>
+      let u = new uPlot(opts, data, document.getElementById("output"));
+      // update();
+    </script>
+
   </body>
 </html>
