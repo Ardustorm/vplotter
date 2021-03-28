@@ -8,15 +8,21 @@
 #include <SPIFFSEditor.h>
 
 #include "wsData.h"
+#include "motor.h"
+
 WsData wsData;
 
-float var1 = 5.322;
-int var2 = 19;
+
+float duty = 0;
+int32_t position = 0;
 
 // SKETCH BEGIN
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
+Motor motA = Motor(13, 12,      // motor
+                   33, 32,      // encoder
+                   500); // frequency
 
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
     if(type == WS_EVT_DATA){
@@ -43,7 +49,7 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
 // const char* ssid = "*******";
 // const char* password = "*******";
 #include "secrets.h"            //contains ssid and password, can use above instead
-const char * hostName = "esp-async";
+const char * hostName = "vplotter";
 const char* http_username = "admin";
 const char* http_password = "admin";
 
@@ -105,8 +111,8 @@ void setup(){
     server.begin();
 
 
-    wsData.add(&var1, "My fancy var 1(float)");
-    wsData.add(&var2, "My fancy var 2(int)");
+    wsData.add(&duty, "Duty Cycle");
+    wsData.add(&position, "Position");
 
 
 }
@@ -114,6 +120,7 @@ void setup(){
 void loop(){
     ArduinoOTA.handle();
     ws.cleanupClients();
-    delay(100);
-    var1 += random(-100,101)/100.0;
+
+    motA.setDuty(duty);
+    position = motA.position();
 }

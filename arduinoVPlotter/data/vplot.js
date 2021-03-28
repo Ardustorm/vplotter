@@ -116,8 +116,8 @@ function testFunc(d) {
     }
 }
 function startSocket(){
-    // ws = new WebSocket('ws://'+document.location.host+'/ws',['arduino']);
-    ws = new WebSocket('ws://192.168.0.180/ws',['arduino']);
+    ws = new WebSocket('ws://'+document.location.host+'/ws',['arduino']);
+
     ws.binaryType = "arraybuffer";
     ws.onerror = function(e){
         console.log("ws error", e);
