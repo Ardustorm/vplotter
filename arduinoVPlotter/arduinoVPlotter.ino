@@ -15,7 +15,7 @@ WsData wsData;
 
 float duty = 0;
 int32_t position = 0;
-int32_t velocity = 0;
+float velocity = 0;
 int32_t velocityTimePeriod = 0;
 
 // SKETCH BEGIN
@@ -116,7 +116,7 @@ void setup(){
     wsData.add(&duty, "Duty Cycle");
     wsData.add(&position, "Position");
 
-    wsData.add(&velocity, "Velocity");
+    wsData.add(&velocity, "Velocity (rev/sec)");
     wsData.add(&velocityTimePeriod, "Velocity Time Period");
 
     initTimer();

@@ -3,8 +3,11 @@
 // class for controling a motor using esp32 pcnt, mcpwm, and freeRTOS
 
 
+
 // Used to keep track of what index to use for the pulse counter (pcnt) and motorController pwm unit (mcpwm)
 int Motor::numberOfMotors = 0;
+int Motor::velocityUpdateRate = 50000; // Period over which velocity is calculated in uS
+int Motor::countsPerOutput = 24*115.5; // number of counts per desired unit (1 rotation, unit distance, etc.)
 
 Motor::Motor(int motA, int motB, int encA, int encB, int pwmFreq) {
     int index = numberOfMotors++;
@@ -149,16 +152,16 @@ void Motor::setDuty(float duty_cycle) {
 
 /* Returns the encoder count for specified pulse counter,
    incorporating the over/underflow to get a 32 bit num*/
-int32_t Motor::position() {
+int32_t IRAM_ATTR Motor::position() {
    int16_t count = 0;
    pcnt_get_counter_value(encoderNum, &count);
    return (PCNT_H_LIM_VAL * motorOverflow[encoderNum]) + count;
 }
-int32_t Motor::getVelocity() {
-    return velocity;
+float Motor::getVelocity() {
+    return velocity * 1e6/velocityUpdateRate / countsPerOutput;
 }
 
-void Motor::velocityControlLoop(uint32_t curTime) {
+void IRAM_ATTR Motor::velocityControlLoop(uint32_t curTime) {
     // No floating points in this since it is an isr
 
     velocity =  (position() - previousPosition);// / (curTime - lastUpdate);
