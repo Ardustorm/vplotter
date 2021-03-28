@@ -26,9 +26,18 @@ class Motor{
     void configurePWM(mcpwm_unit_t mcpwmUnit, int motA, int motB, int pwmFreq);
     void setDuty(float duty_cycle);     // from -100 to +100
     int32_t position();                 // returns position in counts
+    int32_t getVelocity();                 // returns velocity in counts?
+    void velocityControlLoop(uint32_t curTime);
+
+    volatile int32_t velocityTimePeriod=0;   // stores duration velocity was calculated over
+
  private:
     pcnt_unit_t encoderNum;     // Which encoder this is using
     mcpwm_unit_t mcpwmNum;      // Which motor controller this is using
+
+    volatile int32_t velocity=0;             // stores current calculated velocity
+    volatile int32_t previousPosition=0;     // Used for calculating velocity
+    volatile int32_t lastUpdate=0;     // Used for calculating velocity time period
 
     static int numberOfMotors;  // Indexes which pcnt/mcpwm to use
 

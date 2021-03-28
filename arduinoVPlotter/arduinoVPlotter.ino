@@ -15,6 +15,8 @@ WsData wsData;
 
 float duty = 0;
 int32_t position = 0;
+int32_t velocity = 0;
+int32_t velocityTimePeriod = 0;
 
 // SKETCH BEGIN
 AsyncWebServer server(80);
@@ -22,7 +24,7 @@ AsyncWebSocket ws("/ws");
 
 Motor motA = Motor(13, 12,      // motor
                    33, 32,      // encoder
-                   500); // frequency
+                   3000); // frequency
 
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
     if(type == WS_EVT_DATA){
@@ -114,6 +116,10 @@ void setup(){
     wsData.add(&duty, "Duty Cycle");
     wsData.add(&position, "Position");
 
+    wsData.add(&velocity, "Velocity");
+    wsData.add(&velocityTimePeriod, "Velocity Time Period");
+
+    initTimer();
 
 }
 
@@ -123,4 +129,40 @@ void loop(){
 
     motA.setDuty(duty);
     position = motA.position();
+    velocity = motA.getVelocity();
+    velocityTimePeriod = motA.velocityTimePeriod;
+
+}
+
+
+
+
+
+
+hw_timer_t * timer = NULL;
+volatile uint32_t isrCounter = 0;
+volatile uint32_t lastIsrAt = 0;
+
+void IRAM_ATTR onTimer(){
+   isrCounter++;
+  lastIsrAt = micros();
+  motA.velocityControlLoop(micros());
+
+}
+
+void initTimer() {
+  // Use 1st timer of 4 (counted from zero).
+  // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more
+  // info).
+  timer = timerBegin(0, 80, true);
+
+  // Attach onTimer function to our timer.
+  timerAttachInterrupt(timer, &onTimer, true);
+
+  // Set alarm to call onTimer function every  (value in microseconds).
+  // Repeat the alarm (third parameter)
+  timerAlarmWrite(timer, 50000, true);
+
+  // Start an alarm
+  timerAlarmEnable(timer);
 }

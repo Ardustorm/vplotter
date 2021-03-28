@@ -154,3 +154,20 @@ int32_t Motor::position() {
    pcnt_get_counter_value(encoderNum, &count);
    return (PCNT_H_LIM_VAL * motorOverflow[encoderNum]) + count;
 }
+int32_t Motor::getVelocity() {
+    return velocity;
+}
+
+void Motor::velocityControlLoop(uint32_t curTime) {
+    // No floating points in this since it is an isr
+
+    velocity =  (position() - previousPosition);// / (curTime - lastUpdate);
+
+    velocityTimePeriod = curTime - lastUpdate;
+    // velocity = velocity + 1;
+    // setDuty( (double) (2*(targetVelocity - velocity)));
+
+
+    previousPosition = position();
+    lastUpdate = curTime;
+}
