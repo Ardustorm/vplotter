@@ -25,26 +25,46 @@ class Motor{
     void configureEncoder(pcnt_unit_t pcntUnit, int encA, int encB);
     void configurePWM(mcpwm_unit_t mcpwmUnit, int motA, int motB, int pwmFreq);
     void setDuty(float duty_cycle);     // from -100 to +100
-    int32_t position();                 // returns position in counts
-    float getVelocity();                 // returns velocity in counts?
+    void setDuty_uS(int dutyPeriod);     // sets duty in uS
+    void setVelocity(float velocity);
+    float getPosition();                 // returns position in units (Revs)
+    float getVelocity();                 // returns velocity in units (Revs/sec)
     void velocityControlLoop(uint32_t curTime);
+    void testControl(float kp);         // Call control loop outside isr test
 
-    volatile int32_t velocityTimePeriod=0;   // stores duration velocity was calculated over
 
  private:
-    pcnt_unit_t encoderNum;     // Which encoder this is using
+    pcnt_unit_t pcntUnit;      // Which encoder this is using
     mcpwm_unit_t mcpwmNum;      // Which motor controller this is using
+    uint32_t pwmPeriod;         // period in uS, used for setting duty in uS to avoid floats in isr
+
+    int32_t position();                 // returns position in counts
+
+    int32_t velocitySetPoint=0;             // stores target velocity in counts
 
     volatile int32_t velocity=0;             // stores current calculated velocity
     volatile int32_t previousPosition=0;     // Used for calculating velocity
-    volatile int32_t lastUpdate=0;     // Used for calculating velocity time period
+
+
+
 
     static int numberOfMotors;  // Indexes which pcnt/mcpwm to use
 
     static int velocityUpdateRate; // Period over which velocity is calculated in uS
     static int countsPerOutput; // number of counts per desired unit (1 rotation, unit distance, etc.)
 
+
 };
+
+
+
+
+
+// C FUNCTIONS
+
+int32_t IRAM_ATTR getPosition(int pcntUnit);
+int32_t IRAM_ATTR getVelocity(int unit);
+void IRAM_ATTR velocityControlLoop(uint32_t curTime);
 
 
 

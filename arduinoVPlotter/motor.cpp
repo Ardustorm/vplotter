@@ -3,11 +3,15 @@
 // class for controling a motor using esp32 pcnt, mcpwm, and freeRTOS
 
 
-
 // Used to keep track of what index to use for the pulse counter (pcnt) and motorController pwm unit (mcpwm)
 int Motor::numberOfMotors = 0;
 int Motor::velocityUpdateRate = 50000; // Period over which velocity is calculated in uS
 int Motor::countsPerOutput = 24*115.5; // number of counts per desired unit (1 rotation, unit distance, etc.)
+
+const int countsPerOutput = 24*115.5; // number of counts per desired unit (1 rotation, unit distance, etc.)
+volatile int32_t previousPosition[2] = {0}; // stores previous position for velocity calculations
+volatile int32_t velocity[2] = {0};         // velocity measured in ISR
+
 
 Motor::Motor(int motA, int motB, int encA, int encB, int pwmFreq) {
     int index = numberOfMotors++;
@@ -24,6 +28,7 @@ Motor::Motor(int motA, int motB, int encA, int encB, int pwmFreq) {
         return;
     }
 
+    pwmPeriod = 1e6 / pwmFreq;
     // create configs
     configureEncoder(pcntUnit, encA, encB);
     configurePWM(mcpwmUnit, motA, motB, pwmFreq);
@@ -150,12 +155,27 @@ void Motor::setDuty(float duty_cycle) {
     }
 }
 
+
+// Set velocity of motor
+void Motor::setVelocity(float velocity) {
+    // TODO: set mode to velocity
+    velocitySetPoint = velocity * countsPerOutput * velocityUpdateRate/1e6;
+}
+
+void Motor::testControl(float kp) {
+    // setDuty((kp*(velocitySetPoint - velocity)));
+}
+
+float Motor::getPosition() {
+    return  (float)position() / countsPerOutput;
+}
+
 /* Returns the encoder count for specified pulse counter,
    incorporating the over/underflow to get a 32 bit num*/
 int32_t IRAM_ATTR Motor::position() {
    int16_t count = 0;
-   pcnt_get_counter_value(encoderNum, &count);
-   return (PCNT_H_LIM_VAL * motorOverflow[encoderNum]) + count;
+   pcnt_get_counter_value(pcntUnit, &count);
+   return (PCNT_H_LIM_VAL * motorOverflow[pcntUnit]) + count;
 }
 float Motor::getVelocity() {
     return velocity * 1e6/velocityUpdateRate / countsPerOutput;
@@ -166,11 +186,64 @@ void IRAM_ATTR Motor::velocityControlLoop(uint32_t curTime) {
 
     velocity =  (position() - previousPosition);// / (curTime - lastUpdate);
 
-    velocityTimePeriod = curTime - lastUpdate;
-    // velocity = velocity + 1;
-    // setDuty( (double) (2*(targetVelocity - velocity)));
+    // setDuty_uS(2*(velocitySetPoint - velocity) );
 
 
     previousPosition = position();
-    lastUpdate = curTime;
+}
+
+
+
+
+// C FUNCTIONS (For calling in interupt
+
+/* Returns the encoder count for specified pulse counter,
+   incorporating the over/underflow to get a 32 bit num*/
+// int32_t IRAM_ATTR getPosition(pcnt_unit_t pcntUnit) {
+int32_t IRAM_ATTR getPosition(int pcntUnit) {
+   int16_t count = 0;
+   // pcnt_get_counter_value((pcnt_unit_t)pcntUnit, &count);
+   // return (PCNT_H_LIM_VAL * motorOverflow[pcntUnit]) + count;
+
+   pcnt_get_counter_value(PCNT_UNIT_0, &count);
+   return (PCNT_H_LIM_VAL * motorOverflow[0]) + count;
+
+}
+
+int32_t getVelocity(int unit) {
+    return velocity[unit];
+}
+
+/* Set duty cycle of the motor to a duty cycle cycle specified from -100 to +100) */
+void IRAM_ATTR setDuty(mcpwm_unit_t mcpwmNum, float duty_cycle) {
+    if(duty_cycle >= 0) {        /* forward */
+        mcpwm_set_signal_low(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B);
+        mcpwm_set_duty(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A, duty_cycle);
+        mcpwm_set_duty_type(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
+
+    } else {                     /* backward */
+        mcpwm_set_signal_low(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A);
+        mcpwm_set_duty(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B, -1*duty_cycle);
+        mcpwm_set_duty_type(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
+    }
+}
+
+void IRAM_ATTR velocityControlLoop(uint32_t curTime) {
+    // No floating points in this since it is an isr
+    int16_t count;
+    pcnt_get_counter_value(PCNT_UNIT_0, &count);
+    int32_t position = (PCNT_H_LIM_VAL * motorOverflow[0]) + count;
+
+    // int32_t position = getPosition(0);
+
+    velocity[0] =  (position - previousPosition[0]);// / (curTime - lastUpdate);
+
+    // for(int i = 0; i < 100000; i++) {
+    //     position = previousPosition[0] / (i+1) + i * position;
+    //     position += i;
+    // }
+    // setDuty_uS(2*(velocitySetPoint - velocity) );
+
+
+    previousPosition[0] = position;
 }

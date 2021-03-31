@@ -14,9 +14,9 @@ WsData wsData;
 
 
 float duty = 0;
-int32_t position = 0;
-float velocity = 0;
-int32_t velocityTimePeriod = 0;
+float position = 0;
+float velocityOut = 0;
+float velocityKP = 0.1;
 
 // SKETCH BEGIN
 AsyncWebServer server(80);
@@ -24,7 +24,7 @@ AsyncWebSocket ws("/ws");
 
 Motor motA = Motor(13, 12,      // motor
                    33, 32,      // encoder
-                   3000); // frequency
+                   2000); // frequency
 
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
     if(type == WS_EVT_DATA){
@@ -116,8 +116,8 @@ void setup(){
     wsData.add(&duty, "Duty Cycle");
     wsData.add(&position, "Position");
 
-    wsData.add(&velocity, "Velocity (rev/sec)");
-    wsData.add(&velocityTimePeriod, "Velocity Time Period");
+    wsData.add(&velocityOut, "Velocity (rev/sec)");
+    wsData.add(&velocityKP, "Velocity Kp");
 
     initTimer();
 
@@ -127,10 +127,15 @@ void loop(){
     ArduinoOTA.handle();
     ws.cleanupClients();
 
-    motA.setDuty(duty);
-    position = motA.position();
-    velocity = motA.getVelocity();
-    velocityTimePeriod = motA.velocityTimePeriod;
+
+    // motA.setDuty(duty);
+
+    // motA.setVelocity(duty);
+    // motA.testControl(velocityKP);
+    // position = motA.getPosition();
+    // velocity = motA.getVelocity();
+    position = getPosition(0);
+    velocityOut = getVelocity(0);
 
 }
 
@@ -145,8 +150,8 @@ volatile uint32_t lastIsrAt = 0;
 
 void IRAM_ATTR onTimer(){
    isrCounter++;
-  lastIsrAt = micros();
-  motA.velocityControlLoop(micros());
+  // lastIsrAt = micros();
+  velocityControlLoop(micros());
 
 }
 
