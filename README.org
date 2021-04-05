@@ -1,32 +1,17 @@
 * Intro
 This project is a work in progress, but the goal is to make a hanging vplotter robot that is completely self contained and is controlled by the esp32. It uses 2 DC motors with encoders instead of the usual stepper motors.
 
-Currently, the project controls 2 motors with PID control loops, which will be the foundation for the project going forward. The parameters of PID loops and the set points can be modified from the web debug interface. (It is not a pretty interface, and it is pretty confusing, but it does allow for quick experimentation.) The web interface uses websockets to allow quick message exchanges from the esp32 and a web browser. This feature allows the webpage to graph realtime values of variables and modify them as needed.
-
-I am working on converting this project to C++ to make the code cleaner (and to gain experience using C++). This should result in cleaner, easier to read code, and potentially allow others to utilize portions of it (especially the debug ability) in other projects.
+I'm currently in the process of starting over again, this time using the Arduino framework since my goal is to make something that is easy for other people to use. (You can still checkout the previous version on its own branch.) Currently, I have remade a web debug interface using websockets that makes it easy to view, graph, and modify variables from a browser. I also was able to figure out how to read the encoders and update the motors from an ISR, and I'll be working on adding documentation about that shortly on hackaday.io. Eventually, I plan on splitting these parts of the code out into their own libraries since I think they could be useful for other people.
 
 
-* TODO:
-- Convert to C++
-- Finish supporting 2 motors/encoders
-- Design and build physical frame/wheels of the robot.
-- integrate esp portion and webInterface portion
-- Clean up the debug page and make it nicer
-  - Such as having the graph choose different colors for each variable [DONE]
-  - Tickmarks for both axis
-  - autoscale
-
-* Ideas: (AKA notes to self)
-  PID loop (keep motors at specified location)
-  Something that takes in a path and generates points to feed to PID loop
-  Path generation (maybe 2 parts) (given gcode, output stuff to ...
+* Websockets debug
+  https://hackaday.io/project/164975-portable-vertical-plotter/log/191201-websockets-debug
 
 
-  position control (PID, motor control)
-  motion planing (generate points for ^, controls velocity, acceleration, etc.)
-  path planning (decides path robot will take to draw given
-  path generation (from images, patterns, spirography, [[https://www.youtube.com/watch?v=_5So027H_fM][Lissajous]])
 
 
-* Notes
-  Make sure espfs is on v0.9.0. The most recent versions change how the 'espFsOpen' function is called.
+* This is built standing on the shoulders of these projects:
+  - https://github.com/me-no-dev/AsyncTCP (esp32 webserver base)
+  - https://github.com/me-no-dev/ESPAsyncWebServer (esp32 webserver with websockets)
+  - https://picnicss.com/ (css styling for webpage)
+  - https://github.com/leeoniya/uPlot/ (js plotting library)

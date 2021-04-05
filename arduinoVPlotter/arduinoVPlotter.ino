@@ -128,7 +128,7 @@ void loop(){
     ws.cleanupClients();
 
 
-    // motA.setDuty(duty);
+    motA.setDuty(duty);
 
     // motA.setVelocity(duty);
     // motA.testControl(velocityKP);
