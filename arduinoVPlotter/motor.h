@@ -42,8 +42,8 @@ class Motor{
 
     int32_t velocitySetPoint=0;             // stores target velocity in counts
 
-    volatile int32_t velocity=0;             // stores current calculated velocity
-    volatile int32_t previousPosition=0;     // Used for calculating velocity
+    // volatile int32_t velocity=0;             // stores current calculated velocity
+    // volatile int32_t previousPosition=0;     // Used for calculating velocity
 
 
 
@@ -62,8 +62,8 @@ class Motor{
 
 // C FUNCTIONS
 
-int32_t IRAM_ATTR getPosition(int pcntUnit);
-int32_t IRAM_ATTR getVelocity(int unit);
+// int32_t IRAM_ATTR getPosition(int pcntUnit);
+// int32_t IRAM_ATTR getVelocity(int unit);
 void IRAM_ATTR velocityControlLoop(uint32_t curTime);
 
 

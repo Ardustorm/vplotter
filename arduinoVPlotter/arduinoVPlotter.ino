@@ -24,7 +24,7 @@ AsyncWebSocket ws("/ws");
 
 Motor motA = Motor(13, 12,      // motor
                    33, 32,      // encoder
-                   2000); // frequency
+                   200); // frequency
 
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
     if(type == WS_EVT_DATA){
@@ -128,14 +128,14 @@ void loop(){
     ws.cleanupClients();
 
 
-    motA.setDuty(duty);
+    // motA.setDuty(duty);
 
-    // motA.setVelocity(duty);
-    // motA.testControl(velocityKP);
-    // position = motA.getPosition();
-    // velocity = motA.getVelocity();
-    position = getPosition(0);
-    velocityOut = getVelocity(0);
+    motA.setVelocity(duty);
+    motA.testControl(velocityKP);
+    position = motA.getPosition();
+    velocityOut = motA.getVelocity();
+    // position = getPosition(0);
+    // velocityOut = getVelocity(0);
 
 }
 

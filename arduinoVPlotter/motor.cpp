@@ -11,7 +11,13 @@ int Motor::countsPerOutput = 24*115.5; // number of counts per desired unit (1 r
 const int countsPerOutput = 24*115.5; // number of counts per desired unit (1 rotation, unit distance, etc.)
 volatile int32_t previousPosition[2] = {0}; // stores previous position for velocity calculations
 volatile int32_t velocity[2] = {0};         // velocity measured in ISR
+volatile float velocity_KP[2] = {0};         // velocity measured in ISR
+volatile int32_t targetVelocity[2] = {0};         // velocity goal
 
+uint32_t cp0_regs[18];    // FPU enable code from: esp32.com/viewtopic.php?t=1292#p5936
+
+int32_t IRAM_ATTR getMotorPosition(int pcntUnit);
+void IRAM_ATTR setMotorDuty( mcpwm_unit_t mcpwmNum, float duty_cycle);
 
 Motor::Motor(int motA, int motB, int encA, int encB, int pwmFreq) {
     int index = numberOfMotors++;
@@ -143,26 +149,18 @@ static void IRAM_ATTR pcnt_example_intr_handler(void *arg)
 
 /* Set duty cycle of the motor to a duty cycle cycle specified from -100 to +100) */
 void Motor::setDuty(float duty_cycle) {
-    if(duty_cycle >= 0) {        /* forward */
-        mcpwm_set_signal_low(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B);
-        mcpwm_set_duty(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A, duty_cycle);
-        mcpwm_set_duty_type(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
-
-    } else {                     /* backward */
-        mcpwm_set_signal_low(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A);
-        mcpwm_set_duty(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B, -1*duty_cycle);
-        mcpwm_set_duty_type(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
-    }
+    setMotorDuty(mcpwmNum, duty_cycle);
 }
-
 
 // Set velocity of motor
 void Motor::setVelocity(float velocity) {
     // TODO: set mode to velocity
     velocitySetPoint = velocity * countsPerOutput * velocityUpdateRate/1e6;
+    targetVelocity[0] = velocity * countsPerOutput * velocityUpdateRate/1e6;
 }
 
 void Motor::testControl(float kp) {
+    velocity_KP[0] = kp;
     // setDuty((kp*(velocitySetPoint - velocity)));
 }
 
@@ -170,52 +168,23 @@ float Motor::getPosition() {
     return  (float)position() / countsPerOutput;
 }
 
+
 /* Returns the encoder count for specified pulse counter,
    incorporating the over/underflow to get a 32 bit num*/
 int32_t IRAM_ATTR Motor::position() {
-   int16_t count = 0;
-   pcnt_get_counter_value(pcntUnit, &count);
-   return (PCNT_H_LIM_VAL * motorOverflow[pcntUnit]) + count;
+    return getMotorPosition((int)pcntUnit);
 }
 float Motor::getVelocity() {
-    return velocity * 1e6/velocityUpdateRate / countsPerOutput;
-}
-
-void IRAM_ATTR Motor::velocityControlLoop(uint32_t curTime) {
-    // No floating points in this since it is an isr
-
-    velocity =  (position() - previousPosition);// / (curTime - lastUpdate);
-
-    // setDuty_uS(2*(velocitySetPoint - velocity) );
-
-
-    previousPosition = position();
+    // return velocity[0];         // TODO fix
+    return velocity[0] * 1e6/velocityUpdateRate / countsPerOutput;
 }
 
 
+///////////////////////////////////////////////////////////
+//////////////////// C style Functions ////////////////////
+///////////////////////////////////////////////////////////
 
-
-// C FUNCTIONS (For calling in interupt
-
-/* Returns the encoder count for specified pulse counter,
-   incorporating the over/underflow to get a 32 bit num*/
-// int32_t IRAM_ATTR getPosition(pcnt_unit_t pcntUnit) {
-int32_t IRAM_ATTR getPosition(int pcntUnit) {
-   int16_t count = 0;
-   // pcnt_get_counter_value((pcnt_unit_t)pcntUnit, &count);
-   // return (PCNT_H_LIM_VAL * motorOverflow[pcntUnit]) + count;
-
-   pcnt_get_counter_value(PCNT_UNIT_0, &count);
-   return (PCNT_H_LIM_VAL * motorOverflow[0]) + count;
-
-}
-
-int32_t getVelocity(int unit) {
-    return velocity[unit];
-}
-
-/* Set duty cycle of the motor to a duty cycle cycle specified from -100 to +100) */
-void IRAM_ATTR setDuty(mcpwm_unit_t mcpwmNum, float duty_cycle) {
+void IRAM_ATTR setMotorDuty( mcpwm_unit_t mcpwmNum, float duty_cycle) {
     if(duty_cycle >= 0) {        /* forward */
         mcpwm_set_signal_low(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B);
         mcpwm_set_duty(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A, duty_cycle);
@@ -226,24 +195,94 @@ void IRAM_ATTR setDuty(mcpwm_unit_t mcpwmNum, float duty_cycle) {
         mcpwm_set_duty(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B, -1*duty_cycle);
         mcpwm_set_duty_type(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
     }
+
+
+    // // Only goes in 1 direction for now
+    // mcpwm_timer_t timer_num = MCPWM_TIMER_0;
+    // mcpwm_operator_t op_num = MCPWM_OPR_A;
+    // uint32_t set_duty;
+
+    // if(duty >= 0) {
+    //     set_duty = (MCPWM0[mcpwm_num]->timer[timer_num].period.period) * (duty) / 100;
+    //     MCPWM0[mcpwm_num]->channel[timer_num].cmpr_value[op_num].cmpr_val = set_duty;
+    //     MCPWM0[mcpwm_num]->channel[timer_num].cmpr_cfg.a_upmethod = BIT(0);
+    //     MCPWM0[mcpwm_num]->channel[timer_num].cmpr_cfg.b_upmethod = BIT(0);
+    // } else {
+
+    // }
+
+    // mcpwm_hal_context_t *hal = &context[mcpwm_num].hal;
+
+
+
+
+
+}
+void oldSetMotorDuty (mcpwm_unit_t mcpwmNum, float duty_cycle) {
+    if(duty_cycle >= 0) {        /* forward */
+        mcpwm_set_signal_low(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B);
+        mcpwm_set_duty(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A, duty_cycle);
+        // call this each time, if operator was previously in low/high state
+        mcpwm_set_duty_type(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
+
+    } else {                     /* backward */
+        mcpwm_set_signal_low(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_A);
+        mcpwm_set_duty(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B, -1*duty_cycle);
+        // call this each time, if operator was previously in low/high state
+        mcpwm_set_duty_type(mcpwmNum, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
+    }
 }
 
+
+/* Returns the encoder count for specified pulse counter,
+   incorporating the over/underflow to get a 32 bit num*/
+// int32_t IRAM_ATTR getPosition(pcnt_unit_t pcntUnit) {
+int32_t IRAM_ATTR getMotorPosition(int pcntUnit) {
+   int16_t count = 0;
+   // pcnt_get_counter_value((pcnt_unit_t)pcntUnit, &count);
+   // return (PCNT_H_LIM_VAL * motorOverflow[pcntUnit]) + count;
+
+   count = (int16_t) PCNT.cnt_unit[pcntUnit].cnt_val;
+
+   return(PCNT_H_LIM_VAL * motorOverflow[pcntUnit]) + count;
+}
+
+
 void IRAM_ATTR velocityControlLoop(uint32_t curTime) {
-    // No floating points in this since it is an isr
-    int16_t count;
-    pcnt_get_counter_value(PCNT_UNIT_0, &count);
-    int32_t position = (PCNT_H_LIM_VAL * motorOverflow[0]) + count;
+    // // Save and enable the FPU if needed
+    // get FPU state
+    uint32_t cp_state = xthal_get_cpenable();
 
-    // int32_t position = getPosition(0);
+    if(cp_state) {
+        // Save FPU registers
+        xthal_save_cp0(cp0_regs);
+    } else {
+        // enable FPU
+        xthal_set_cpenable(1);
+    }
 
-    velocity[0] =  (position - previousPosition[0]);// / (curTime - lastUpdate);
+    int32_t position0 = getMotorPosition(PCNT_UNIT_0);
+    int32_t position1 = getMotorPosition(PCNT_UNIT_1);
 
-    // for(int i = 0; i < 100000; i++) {
-    //     position = previousPosition[0] / (i+1) + i * position;
-    //     position += i;
-    // }
-    // setDuty_uS(2*(velocitySetPoint - velocity) );
+    velocity[0] = position0 - previousPosition[0];
+    velocity[1] = position1 - previousPosition[1];
 
 
-    previousPosition[0] = position;
+    float duty = velocity_KP[0] * (targetVelocity[0] - velocity[0]) + // Proportional
+        ( (1e6/50000 /(24*115.5)) *targetVelocity[0] * 100/1.8); // Feedforward
+    setMotorDuty(MCPWM_UNIT_0, duty);
+
+    previousPosition[0] = position0;
+    previousPosition[1] = position1;
+
+
+
+
+    if(cp_state) {
+        // Restore FPU registers
+        xthal_restore_cp0(cp0_regs);
+    } else {
+        // turn it back off
+        xthal_set_cpenable(0);
+    }
 }
