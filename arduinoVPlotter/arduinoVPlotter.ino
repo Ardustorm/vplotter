@@ -119,7 +119,24 @@ void setup(){
     wsData.add(&velocityOut, "Velocity (rev/sec)");
     wsData.add(&velocityKP, "Velocity Kp");
 
-    initTimer();
+    // initTimer();
+
+    esp_timer_init();
+    const esp_timer_create_args_t periodic_timer_args = {
+        .callback = &periodic_timer_callback,
+        .arg = NULL,
+        .dispatch_method = ESP_TIMER_TASK,
+        /* name is optional, but may help identify the timer when debugging */
+        .name = "periodic",
+        // .skip_unhandled_events = 0
+    };
+
+    esp_timer_handle_t periodic_timer;
+    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
+    /* The timer has been created but is not running yet */
+
+    /* Start the timers */
+    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 1953));
 
 }
 
@@ -130,10 +147,10 @@ void loop(){
 
     // motA.setDuty(duty);
 
-    motA.setVelocity(duty);
-    motA.testControl(velocityKP);
-    position = motA.getPosition();
-    velocityOut = motA.getVelocity();
+    // motA.setVelocity(duty);
+    // motA.testControl(velocityKP);
+    // position = motA.getPosition();
+    // velocityOut = motA.getVelocity();
     // position = getPosition(0);
     // velocityOut = getVelocity(0);
 
@@ -170,4 +187,30 @@ void initTimer() {
 
   // Start an alarm
   timerAlarmEnable(timer);
+}
+
+
+
+static void periodic_timer_callback(void* arg)
+{
+    static int64_t i= 0;
+    static int64_t offset= 0;
+    static int64_t last= 0;
+
+    int16_t count = 0;
+    pcnt_get_counter_value(PCNT_UNIT_0, &count);
+    // return (PCNT_H_LIM_VAL * motorOverflow[encoderNum]) + count;
+
+
+    int64_t time_since_boot = esp_timer_get_time();
+
+    if(i == 0) {
+        offset = time_since_boot;
+        last = time_since_boot;
+    }
+    // float time = ((float)time_since_boot - (i)*2000.0 - offset) / 1000;
+    float time = (time_since_boot - last) - 1953;
+    printf("%f\t %d\n", time, count);
+    i++;
+    last = time_since_boot;
 }
