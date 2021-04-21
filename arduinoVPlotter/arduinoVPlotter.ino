@@ -129,10 +129,10 @@ void loop(){
 
     // motA.setDuty(duty);
 
-    // motA.setVelocity(duty);
+    motA.setVelocity(duty);
     // motA.testControl(velocityKP);
-    // position = motA.getPosition();
-    // velocityOut = motA.getVelocity();
+    position = motA.getPosition();
+    velocityOut = motA.getVelocity();
     // position = getPosition(0);
     // velocityOut = getVelocity(0);
 

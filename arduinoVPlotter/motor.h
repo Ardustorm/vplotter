@@ -33,6 +33,7 @@ class Motor{
     void velocityControlLoop(uint32_t curTime);
     void testControl(float kp);         // Call control loop outside isr test
 
+    void controlLoop();
     static int numberOfMotors;  // Indexes which pcnt/mcpwm to use (TODO: make private w/ getter method?)
 
  private:

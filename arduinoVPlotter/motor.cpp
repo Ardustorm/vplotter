@@ -1,5 +1,5 @@
 #include "motor.h"
-
+#include "Arduino.h"
 // class for controling a motor using esp32 pcnt, mcpwm, and freeRTOS
 
 
@@ -10,12 +10,8 @@ int Motor::countsPerOutput = 24*115.5; // number of counts per desired unit (1 r
 
 const int countsPerOutput = 24*115.5; // number of counts per desired unit (1 rotation, unit distance, etc.)
 
-
+void saveMotor(int i, Motor* m);
 void control_loop_task(void *param);
-// volatile int32_t previousPosition[2] = {0}; // stores previous position for velocity calculations
-// volatile int32_t velocity[2] = {0};         // velocity measured in ISR
-// volatile float velocity_KP[2] = {0};         // velocity measured in ISR
-// volatile int32_t targetVelocity[2] = {0};         // velocity goal
 
 
 Motor::Motor(int motA, int motB, int encA, int encB, int pwmFreq) {
@@ -33,7 +29,7 @@ Motor::Motor(int motA, int motB, int encA, int encB, int pwmFreq) {
         printf("ERROR: MOTOR currently supports only 2 instances.\n");
         return;
     }
-
+    saveMotor(index, this);
     pwmPeriod = 1e6 / pwmFreq;  // TODO: this might cause problems at higher frequencies
     // create configs
     configureEncoder(pcntUnit, encA, encB);
@@ -193,6 +189,13 @@ float Motor::getVelocity() {
     return velocity * 1e6/velocityUpdateRate / countsPerOutput;
 }
 
+void Motor::controlLoop() {
+    int32_t curPosition = position();
+    velocity = curPosition - previousPosition;
+    previousPosition = curPosition;
+    setDuty(20 * (velocitySetPoint - getVelocity()));
+ }
+
 
 ///////////////////////////////////////////////////////////
 //////////////////// C style Functions ////////////////////
@@ -227,7 +230,7 @@ static SemaphoreHandle_t timer_sem;
 
 
 
-void IRAM_ATTR onTimer(){
+void IRAM_ATTR onTimer(void * args){
    static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
    xSemaphoreGiveFromISR(timer_sem, &xHigherPriorityTaskWoken);
    if( xHigherPriorityTaskWoken) {
@@ -237,6 +240,25 @@ void IRAM_ATTR onTimer(){
 
 // TODO: switch to new API? I can't find documentation on these functions
 void initISRTimer(uint64_t period_us) {
+
+   // timer_isr_register(timer_group, timer_idx, timer_isr_handler, NULL, ESP_INTR_FLAG_IRAM, NULL);
+
+
+
+
+    const esp_timer_create_args_t periodic_timer_args = {
+        .callback = &onTimer,
+        /* name is optional, but may help identify the timer when debugging */
+        // .name = "motor Control"
+    };
+
+    esp_timer_handle_t periodic_timer;
+    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
+    /* The timer has been created but is not running yet */
+
+    /* Start the timers */
+    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 5000));
+
   // // Use 1st timer of 4 (counted from zero).
   // // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more
   // // info).
@@ -254,7 +276,10 @@ void initISRTimer(uint64_t period_us) {
 }
 
 
-
+Motor* motors[2];
+void saveMotor(int i, Motor* m) {
+    motors[i] = m;
+}
 
 void control_loop_task(void *param)
 {
@@ -262,13 +287,18 @@ void control_loop_task(void *param)
 
     initISRTimer(2000);     // control loop period, in uS
 
-    int64_t time_since_boot;
+    uint32_t time_since_boot = micros();
+    int i = 0;
     while (1) {
         xSemaphoreTake(timer_sem, portMAX_DELAY);
-        time_since_boot = esp_timer_get_time();
+
         // Do Work here
         for (int i = 0; i < Motor::numberOfMotors; i++) {
             // Call motor[i] control loop
+            motors[i]->controlLoop();
         }
+        printf("%d\n", (micros() - 5000*i++) - time_since_boot);
+
+
     }
 }
