@@ -7,7 +7,8 @@
 #include "freertos/task.h"
 #include "driver/mcpwm.h"
 #include "driver/pcnt.h"
-
+#include "driver/timer.h"
+#include "Arduino.h"
 
 #define PCNT_H_LIM_VAL      ((int16_t) 0x7FFF)
 #define PCNT_L_LIM_VAL      ((int16_t) 0x8000)

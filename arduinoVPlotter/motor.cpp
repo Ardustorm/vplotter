@@ -1,5 +1,5 @@
 #include "motor.h"
-#include "Arduino.h"
+
 // class for controling a motor using esp32 pcnt, mcpwm, and freeRTOS
 
 
@@ -225,54 +225,35 @@ void IRAM_ATTR velocityControlLoop(uint32_t curTime) {
 
 
 static SemaphoreHandle_t timer_sem;
-// hw_timer_t * timer = NULL;
+hw_timer_t * timer = NULL;
 
 
-
-
-void IRAM_ATTR onTimer(void * args){
+static void IRAM_ATTR onTimer(){
    static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
    xSemaphoreGiveFromISR(timer_sem, &xHigherPriorityTaskWoken);
    if( xHigherPriorityTaskWoken) {
        portYIELD_FROM_ISR(); // this wakes up sample_timer_task immediately
    }
 }
 
-// TODO: switch to new API? I can't find documentation on these functions
+// TODO: switch to new API? I can't find documentation on these functions, but they work so...
+//   Also must include 'Arduino.h' for it to work
 void initISRTimer(uint64_t period_us) {
+  // Use 1st timer of 4 (counted from zero).
+  // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more
+  // info).
+  timer = timerBegin(0, 80, true);
 
-   // timer_isr_register(timer_group, timer_idx, timer_isr_handler, NULL, ESP_INTR_FLAG_IRAM, NULL);
+  // Attach onTimer function to our timer.
+  timerAttachInterrupt(timer, &onTimer, true);
 
+  // Set alarm to call onTimer function every  (value in microseconds).
+  // Repeat the alarm (third parameter)
+  timerAlarmWrite(timer, period_us, true);
 
-
-
-    const esp_timer_create_args_t periodic_timer_args = {
-        .callback = &onTimer,
-        /* name is optional, but may help identify the timer when debugging */
-        // .name = "motor Control"
-    };
-
-    esp_timer_handle_t periodic_timer;
-    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
-    /* The timer has been created but is not running yet */
-
-    /* Start the timers */
-    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 5000));
-
-  // // Use 1st timer of 4 (counted from zero).
-  // // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more
-  // // info).
-  // timer = timerBegin(0, 80, true);
-
-  // // Attach onTimer function to our timer.
-  // timerAttachInterrupt(timer, &onTimer, true);
-
-  // // Set alarm to call onTimer function every  (value in microseconds).
-  // // Repeat the alarm (third parameter)
-  // timerAlarmWrite(timer, period_us, true);
-
-  // // Start an alarm
-  // timerAlarmEnable(timer);
+  // Start an alarm
+  timerAlarmEnable(timer);
 }
 
 
@@ -285,7 +266,7 @@ void control_loop_task(void *param)
 {
     timer_sem = xSemaphoreCreateBinary();
 
-    initISRTimer(2000);     // control loop period, in uS
+    initISRTimer(5000);     // control loop period, in uS
 
     uint32_t time_since_boot = micros();
     int i = 0;
