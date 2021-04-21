@@ -4,6 +4,7 @@
 
 // #include <stdio.h>
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "driver/mcpwm.h"
 #include "driver/pcnt.h"
 
@@ -32,6 +33,7 @@ class Motor{
     void velocityControlLoop(uint32_t curTime);
     void testControl(float kp);         // Call control loop outside isr test
 
+    static int numberOfMotors;  // Indexes which pcnt/mcpwm to use (TODO: make private w/ getter method?)
 
  private:
     pcnt_unit_t pcntUnit;      // Which encoder this is using
@@ -42,30 +44,17 @@ class Motor{
 
     int32_t velocitySetPoint=0;             // stores target velocity in counts
 
-    // volatile int32_t velocity=0;             // stores current calculated velocity
-    // volatile int32_t previousPosition=0;     // Used for calculating velocity
+    volatile int32_t velocity=0;             // stores current calculated velocity
+    volatile int32_t previousPosition=0;     // Used for calculating velocity
 
 
 
 
-    static int numberOfMotors;  // Indexes which pcnt/mcpwm to use
 
     static int velocityUpdateRate; // Period over which velocity is calculated in uS
     static int countsPerOutput; // number of counts per desired unit (1 rotation, unit distance, etc.)
 
 
 };
-
-
-
-
-
-// C FUNCTIONS
-
-// int32_t IRAM_ATTR getPosition(int pcntUnit);
-// int32_t IRAM_ATTR getVelocity(int unit);
-void IRAM_ATTR velocityControlLoop(uint32_t curTime);
-
-
 
 #endif /* __MOTOR_H__ */

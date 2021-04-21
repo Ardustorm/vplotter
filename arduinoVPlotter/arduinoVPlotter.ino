@@ -26,7 +26,6 @@ Motor motA = Motor(13, 12,      // motor
                    33, 32,      // encoder
                    200); // frequency
 
-static SemaphoreHandle_t timer_sem;
 
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
     if(type == WS_EVT_DATA){
@@ -121,28 +120,6 @@ void setup(){
     wsData.add(&velocityOut, "Velocity (rev/sec)");
     wsData.add(&velocityKP, "Velocity Kp");
 
-    // initTimer();
-
-
-    esp_timer_init();
-    const esp_timer_create_args_t periodic_timer_args = {
-        .callback = &periodic_timer_callback,
-        .arg = NULL,
-        .dispatch_method = ESP_TIMER_TASK,
-        /* name is optional, but may help identify the timer when debugging */
-        .name = "periodic",
-        // .skip_unhandled_events = 0
-    };
-
-    esp_timer_handle_t periodic_timer;
-    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
-    /* The timer has been created but is not running yet */
-
-    /* Start the timers */
-    // ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 1953));
-
-    xTaskCreatePinnedToCore(sample_timer_task, "sample_timer", 4096, NULL, configMAX_PRIORITIES - 1, NULL, 1);
-
 }
 
 void loop(){
@@ -159,119 +136,4 @@ void loop(){
     // position = getPosition(0);
     // velocityOut = getVelocity(0);
 
-}
-
-
-
-
-
-
-hw_timer_t * timer = NULL;
-volatile uint32_t isrCounter = 0;
-volatile uint32_t lastIsrAt = 0;
-
-void IRAM_ATTR onTimer(){
-   isrCounter++;
-  // lastIsrAt = micros();
-  // velocityControlLoop(micros());
-
-   static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-   xSemaphoreGiveFromISR(timer_sem, &xHigherPriorityTaskWoken);
-   if( xHigherPriorityTaskWoken) {
-       portYIELD_FROM_ISR(); // this wakes up sample_timer_task immediately
-   }
-
-
-}
-
-void initTimer() {
-  // Use 1st timer of 4 (counted from zero).
-  // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more
-  // info).
-  timer = timerBegin(0, 80, true);
-
-  // Attach onTimer function to our timer.
-  timerAttachInterrupt(timer, &onTimer, true);
-
-  // Set alarm to call onTimer function every  (value in microseconds).
-  // Repeat the alarm (third parameter)
-  timerAlarmWrite(timer, 500, true);
-
-  // Start an alarm
-  timerAlarmEnable(timer);
-}
-
-
-
-static void periodic_timer_callback(void* arg)
-{
-    static int64_t i= 0;
-    static int64_t offset= 0;
-    static int64_t last= 0;
-
-    int16_t count = 0;
-    pcnt_get_counter_value(PCNT_UNIT_0, &count);
-    // return (PCNT_H_LIM_VAL * motorOverflow[encoderNum]) + count;
-
-
-    int64_t time_since_boot = esp_timer_get_time();
-
-    if(i == 0) {
-        offset = time_since_boot;
-        last = time_since_boot;
-    }
-    // float time = ((float)time_since_boot - (i)*2000.0 - offset) / 1000;
-    float time = (time_since_boot - last) - 1953;
-    printf("%f\t %d\n", time, count);
-    i++;
-    last = time_since_boot;
-}
-
-
-
-
-
-void sample_timer_task(void *param)
-{
-    timer_sem = xSemaphoreCreateBinary();
-
-    // timer group init and config goes here (timer_group example gives code for doing this)
-    initTimer();
-
-    // timer_isr_register(timer_group, timer_idx, timer_isr_handler, NULL, ESP_INTR_FLAG_IRAM, NULL);
-
-    static int64_t last= esp_timer_get_time();
-    int64_t offset= esp_timer_get_time();
-    int64_t time_since_boot;
-    int64_t max =0;
-    while (1) {
-        xSemaphoreTake(timer_sem, portMAX_DELAY);
-        time_since_boot = esp_timer_get_time();
-
-        int64_t time = (time_since_boot - last);
-        // sample sensors via i2c here
-        if((time - 500) > 25)
-            printf("\t%lld\n", (time -500));
-        // push sensor data to another queue, or send to a socket...
-
-        if( time > max) {
-            max = time;
-            printf("%lld\n", (max - 500));
-        }
-
-        last= time_since_boot;
-    }
-}
-
-void IRAM_ATTR timer_isr_handler(void *param)
-{
-    static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
-    // TIMERG0.hw_timer[timer_idx].update = 1;
-    // any other code required to reset the timer for next timeout event goes here
-
-    xSemaphoreGiveFromISR(timer_sem, &xHigherPriorityTaskWoken);
-    if( xHigherPriorityTaskWoken) {
-        portYIELD_FROM_ISR(); // this wakes up sample_timer_task immediately
-    }
 }
